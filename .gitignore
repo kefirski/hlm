@@ -17,6 +17,7 @@ eggs/
 .idea/
 preprocessings/
 .eggs/
+experimentation.py
 lib/
 lib64/
 parts/
