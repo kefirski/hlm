@@ -39,6 +39,25 @@ class VAE(nn.Module):
             IAF(latent_size=20, h_size=120)
         ])
 
+        self.generation = nn.ModuleList([
+            GenerativeBlock(
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=25, hidden_size=25, num_layers=1, bidirectional=True),
+                    ParametersInference(input_size=50, latent_size=55)
+                ),
+                input=SeqToSeq(input_size=25, hidden_size=50, num_layers=1, bidirectional=False),
+                prior=nn.Sequential(
+                    SeqToSeq(input_size=50, hidden_size=50, num_layers=1, bidirectional=False),
+                    ParametersInference(input_size=50, latent_size=55)
+                ),
+                out=VecToSeq(input_size=50, z_size=55, hidden_size=40, num_layers=1)
+            ),
+            
+            GenerativeBlock(
+                out=VecToSeq(input_size=15, z_size=20, hidden_size=25, num_layers=1)
+            )
+        ])
+
         self.vae_length = len(self.inference)
 
     def forward(self, input, lengths):
