@@ -43,9 +43,10 @@ class VAE(nn.Module):
 
         self.vae_length = len(self.inference)
 
-    def forward(self, input):
+    def forward(self, input, lengths):
         """
         :param input: An long tensor with shape of [batch_size, seq_len]
+        :param lengths: An list with length of batch_size with lengths of every batch sequence
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
 
@@ -53,6 +54,8 @@ class VAE(nn.Module):
         cuda = input.is_cuda
 
         posterior_parameters = []
+
+        input = self.embedding(input, lengths)
 
         '''
         Here we perform top-down inference.
@@ -72,7 +75,9 @@ class VAE(nn.Module):
             else:
                 parameters = self.inference[i](input)
 
-            posterior_parameters += [parameters]
+            posterior_parameters.append(parameters)
+
+        print([[var.size() for var in par] for par in posterior_parameters])
 
     @staticmethod
     def kl_divergence(**kwargs):
