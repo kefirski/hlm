@@ -5,21 +5,21 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 from model.blocks import *
-from model.blocks.abstract_vae_blocks.inference import InferenceBlock
 
 
 class VAE(nn.Module):
     def __init__(self, vocab_size):
         super(VAE, self).__init__()
 
-        self.embedding = Embedding(vocab_size, embedding_size=15)
+        self.vocab_size = vocab_size
+        self.embedding = Embedding(self.vocab_size, embedding_size=15)
 
         self.inference = nn.ModuleList([
             InferenceBlock(
                 input=SeqToSeq(input_size=15, hidden_size=15, num_layers=1, bidirectional=True),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=30, hidden_size=30, num_layers=1),
-                    ParametersInference(input_size=60, latent_size=40, h_size=50)
+                    ParametersInference(input_size=60, latent_size=55, h_size=60)
                 ),
                 out=lambda x: x
             ),
@@ -28,12 +28,24 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=15 + 30, hidden_size=45, num_layers=1, bidirectional=True),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=90, hidden_size=70, num_layers=1),
-                    ParametersInference(input_size=140, latent_size=15, h_size=100)
-                ),
+                    ParametersInference(input_size=140, latent_size=20, h_size=120)
+                )
             )
         ])
 
-    def forward(self):
+        self.iaf = nn.ModuleList(
+            [
+                IAF(latent_size=55, h_size=60),
+                IAF(latent_size=20, h_size=120)
+            ]
+        )
+
+    def forward(self, input):
+        """
+        :param input: An long tensor with shape of [batch_size, seq_len]
+        :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
+        """
+
         pass
 
     @staticmethod

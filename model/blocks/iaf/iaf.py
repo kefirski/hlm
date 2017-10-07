@@ -34,7 +34,7 @@ class IAF(nn.Module):
         """
         :param z: An float tensor with shape of [batch_size, z_size]
         :param h: An float tensor with shape of [batch_size, h_size]
-        :return: An float tensor with shape of [batch_size, z_size] and log det value of the IAF mapping Jacobian
+        :return: An float tensor with shape of [batch_size, z_size] and log det value of the iaf mapping Jacobian
         """
 
         h = self.h(h)
