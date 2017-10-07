@@ -1,8 +1,8 @@
 import torch as t
 import torch.nn as nn
 
-from IAF.autoregressive_linear import AutoregressiveLinear
-from IAF.highway import Highway
+from .autoregressive_linear import AutoregressiveLinear
+from .highway import Highway
 
 
 class IAF(nn.Module):

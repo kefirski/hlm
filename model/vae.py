@@ -3,6 +3,7 @@ from math import log, pi
 import torch as t
 import torch.nn as nn
 from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from model.blocks import *
 
@@ -40,13 +41,38 @@ class VAE(nn.Module):
             ]
         )
 
+        self.vae_length = len(self.inference)
+
     def forward(self, input):
         """
         :param input: An long tensor with shape of [batch_size, seq_len]
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
 
-        pass
+        [batch_size, seq_len] = input.size()
+        cuda = input.is_cuda
+
+        posterior_parameters = []
+
+        '''
+        Here we perform top-down inference.
+        parameters array is filled with posterior parameters [mu, std, h]
+        '''
+        for i in range(self.vae_length):
+
+            if i < self.vae_length - 1:
+                out, parameters = self.inference[i](input)
+
+                [out, lengths] = pad_packed_sequence(out, batch_first=True)
+                [input, _] = pad_packed_sequence(input, batch_first=True)
+
+                input = t.cat([input, out], 2)
+                input = pack_padded_sequence(input, lengths, batch_first=True)
+
+            else:
+                parameters = self.inference[i](input)
+
+            posterior_parameters += [parameters]
 
     @staticmethod
     def kl_divergence(**kwargs):
