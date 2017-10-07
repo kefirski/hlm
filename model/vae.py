@@ -34,12 +34,10 @@ class VAE(nn.Module):
             )
         ])
 
-        self.iaf = nn.ModuleList(
-            [
-                IAF(latent_size=55, h_size=60),
-                IAF(latent_size=20, h_size=120)
-            ]
-        )
+        self.iaf = nn.ModuleList([
+            IAF(latent_size=55, h_size=60),
+            IAF(latent_size=20, h_size=120)
+        ])
 
         self.vae_length = len(self.inference)
 
