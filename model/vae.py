@@ -3,11 +3,32 @@ from math import log, pi
 import torch as t
 import torch.nn as nn
 from torch.autograd import Variable
+from model.blocks.abstract_vae_blocks.inference import InferenceBlock
+from model.blocks import *
 
 
 class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
+
+        self.inference = nn.ModuleList([
+            InferenceBlock(
+                input=SeqToSeq(input_size=15, hidden_size=15, num_layers=1, bidirectional=True),
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=30, hidden_size=30, num_layers=1),
+                    ParametersInference(input_size=60, latent_size=40, h_size=50)
+                ),
+                out=lambda x: x
+            ),
+
+            InferenceBlock(
+                input=SeqToSeq(input_size=15 + 30, hidden_size=45, num_layers=1, bidirectional=True),
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=90, hidden_size=70, num_layers=1),
+                    ParametersInference(input_size=140, latent_size=15, h_size=100)
+                ),
+            )
+        ])
 
     def forward(self):
         pass
