@@ -52,7 +52,7 @@ class VAE(nn.Module):
                 ),
                 out=VecToSeq(input_size=50, z_size=55, hidden_size=40, num_layers=1)
             ),
-            
+
             GenerativeBlock(
                 out=VecToSeq(input_size=15, z_size=20, hidden_size=25, num_layers=1)
             )
@@ -60,9 +60,10 @@ class VAE(nn.Module):
 
         self.vae_length = len(self.inference)
 
-    def forward(self, input, lengths):
+    def forward(self, input, generator_input, lengths, generator_lengths):
         """
         :param input: An long tensor with shape of [batch_size, seq_len]
+        :param generator_input: An long tensor with shape of [batch_size, seq_len]
         :param lengths: An list with length of batch_size with lengths of every batch sequence
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
@@ -73,6 +74,7 @@ class VAE(nn.Module):
         posterior_parameters = []
 
         input = self.embedding(input, lengths)
+        generator_input = self.embedding(generator_input, generator_lengths)
 
         for i in range(self.vae_length):
 
@@ -106,8 +108,8 @@ class VAE(nn.Module):
                                  log_det=log_det,
                                  posterior=[mu, std])
 
-        # posterior = self.generation[-1](posterior)
-        # prior = self.generation[-1](prior)
+        posterior = self.generation[-1](generator_input, posterior)
+        prior = self.generation[-1](generator_input, prior)
 
     @staticmethod
     def kl_divergence(**kwargs):
