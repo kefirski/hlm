@@ -3,13 +3,16 @@ from math import log, pi
 import torch as t
 import torch.nn as nn
 from torch.autograd import Variable
-from model.blocks.abstract_vae_blocks.inference import InferenceBlock
+
 from model.blocks import *
+from model.blocks.abstract_vae_blocks.inference import InferenceBlock
 
 
 class VAE(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size):
         super(VAE, self).__init__()
+
+        self.embedding = Embedding(vocab_size, embedding_size=15)
 
         self.inference = nn.ModuleList([
             InferenceBlock(
