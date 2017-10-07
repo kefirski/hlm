@@ -1,9 +1,9 @@
 import torch.nn as nn
 
 
-class SeqToVec(nn.Module):
+class SeqToSeq(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, bidirectional):
-        super(SeqToVec, self).__init__()
+        super(SeqToSeq, self).__init__()
 
         self.input_size = input_size
         self.hidden_size = hidden_size
