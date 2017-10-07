@@ -57,10 +57,6 @@ class VAE(nn.Module):
 
         input = self.embedding(input, lengths)
 
-        '''
-        Here we perform top-down inference.
-        parameters array is filled with posterior parameters [mu, std, h]
-        '''
         for i in range(self.vae_length):
 
             if i < self.vae_length - 1:
@@ -77,7 +73,24 @@ class VAE(nn.Module):
 
             posterior_parameters.append(parameters)
 
-        print([[var.size() for var in par] for par in posterior_parameters])
+        [mu, std, h] = posterior_parameters[-1]
+
+        prior = Variable(t.randn(*mu.size()))
+        eps = Variable(t.randn(*mu.size()))
+
+        if cuda:
+            prior, eps = prior.cuda(), eps.cuda()
+
+        posterior_gauss = eps * std + mu
+        posterior, log_det = self.iaf[-1](posterior_gauss, h)
+
+        kld = self.kl_divergence(z=posterior,
+                                 z_gauss=posterior_gauss,
+                                 log_det=log_det,
+                                 posterior=[mu, std])
+
+        # posterior = self.generation[-1](posterior)
+        # prior = self.generation[-1](prior)
 
     @staticmethod
     def kl_divergence(**kwargs):
