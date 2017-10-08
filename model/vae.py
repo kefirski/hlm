@@ -74,7 +74,6 @@ class VAE(nn.Module):
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
 
-        [batch_size, seq_len] = input.size()
         cuda = input.is_cuda
 
         posterior_parameters = []
