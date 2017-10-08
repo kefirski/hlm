@@ -65,7 +65,7 @@ class PTBLoader():
         char_counts = collections.Counter(sentences)
 
         idx_to_char = [x[0] for x in char_counts.most_common()]
-        idx_to_char = [self.go_token, self.stop_token, self.pad_token] + list(sorted(idx_to_char))
+        idx_to_char = [self.pad_token, self.go_token, self.stop_token] + list(sorted(idx_to_char))
 
         char_to_idx = {x: i for i, x in enumerate(idx_to_char)}
 

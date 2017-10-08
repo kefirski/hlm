@@ -3,9 +3,10 @@ from math import log, pi
 import torch as t
 import torch.nn as nn
 from torch.autograd import Variable
+from torch.nn.utils import weight_norm
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from model.blocks import *
+from model.modules import *
 
 
 class VAE(nn.Module):
@@ -17,7 +18,7 @@ class VAE(nn.Module):
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=15, hidden_size=15, num_layers=1, bidirectional=True),
+                input=SeqToSeq(input_size=15, hidden_size=15, num_layers=1),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=30, hidden_size=30, num_layers=1),
                     ParametersInference(input_size=60, latent_size=55, h_size=60)
@@ -26,7 +27,7 @@ class VAE(nn.Module):
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=15 + 30, hidden_size=45, num_layers=1, bidirectional=True),
+                input=SeqToSeq(input_size=15 + 30, hidden_size=45, num_layers=1),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=90, hidden_size=70, num_layers=1),
                     ParametersInference(input_size=140, latent_size=20, h_size=120)
@@ -42,22 +43,26 @@ class VAE(nn.Module):
         self.generation = nn.ModuleList([
             GenerativeBlock(
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=25, hidden_size=25, num_layers=1, bidirectional=True),
+                    SeqToVec(input_size=vocab_size, hidden_size=25, num_layers=1),
                     ParametersInference(input_size=50, latent_size=55)
                 ),
-                input=SeqToSeq(input_size=25, hidden_size=50, num_layers=1, bidirectional=False),
+                input=SeqToSeq(input_size=vocab_size, hidden_size=25, num_layers=1),
                 prior=nn.Sequential(
-                    SeqToSeq(input_size=50, hidden_size=50, num_layers=1, bidirectional=False),
+                    SeqToVec(input_size=50, hidden_size=25, num_layers=1),
                     ParametersInference(input_size=50, latent_size=55)
                 ),
-                out=VecToSeq(input_size=50, z_size=55, hidden_size=40, num_layers=1)
+                out=VecToSeq(50 + 15, z_size=55, hidden_size=40, num_layers=1,
+                             out=weight_norm(nn.Linear(40, vocab_size))),
             ),
 
             GenerativeBlock(
-                out=VecToSeq(input_size=15, z_size=20, hidden_size=25, num_layers=1)
+                out=VecToSeq(15, z_size=20, hidden_size=30, num_layers=2, out=weight_norm(nn.Linear(30, vocab_size))),
             )
         ])
 
+        self.out = SeqToSeq(15 + 15, 15, 1, bidirectional=True, out=weight_norm(nn.Linear(30, vocab_size))),
+
+        self.latent_size = [55, 20]
         self.vae_length = len(self.inference)
 
     def forward(self, input, generator_input, lengths, generator_lengths):
@@ -65,6 +70,7 @@ class VAE(nn.Module):
         :param input: An long tensor with shape of [batch_size, seq_len]
         :param generator_input: An long tensor with shape of [batch_size, seq_len]
         :param lengths: An list with length of batch_size with lengths of every batch sequence
+        :param generator_lengths: An list with length of batch_size with lengths of every batch sequence
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
 
@@ -74,7 +80,8 @@ class VAE(nn.Module):
         posterior_parameters = []
 
         input = self.embedding(input, lengths)
-        generator_input = self.embedding(generator_input, generator_lengths)
+        generator_input = self.embedding(generator_input)
+        packed_generator_input = pack_padded_sequence(generator_input, generator_lengths, True)
 
         for i in range(self.vae_length):
 
@@ -108,8 +115,36 @@ class VAE(nn.Module):
                                  log_det=log_det,
                                  posterior=[mu, std])
 
-        posterior = self.generation[-1](generator_input, posterior)
-        prior = self.generation[-1](generator_input, prior)
+        posterior = self.generation[-1](posterior, [packed_generator_input])
+        prior = self.generation[-1](prior, [packed_generator_input])
+
+        for i in range(self.vae_length - 2, -1, -1):
+
+            posterior_determenistic = self.generation[i].input(posterior)
+            prior_determenistic = self.generation[i].input(prior)
+
+            [top_down_mu, top_down_std, _] = self.generation[i].inference(posterior, 'posterior')
+            [bottom_up_mu, bottom_up_std, h] = posterior_parameters[i]
+
+            posterior_mu = top_down_mu + bottom_up_mu
+            posterior_std = top_down_std + bottom_up_std
+
+            eps = Variable(t.randn(*posterior_mu.size()))
+            if cuda:
+                eps.cuda()
+
+            posterior_gauss = eps * posterior_std + posterior_mu
+            posterior, log_det = self.iaf[i](posterior_gauss, h)
+
+            prior_mu, prior_std, _ = self.generation[i].inference(prior_determenistic, 'prior')
+
+            kld += VAE.kl_divergence(z=posterior,
+                                     z_gauss=posterior_gauss,
+                                     log_det=log_det,
+                                     posterior=[posterior_mu, posterior_std],
+                                     prior=[prior_mu, prior_std])
+
+            posterior = self.generation[i].out(posterior, [posterior_determenistic, packed_generator_input])
 
     @staticmethod
     def kl_divergence(**kwargs):

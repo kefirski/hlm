@@ -18,7 +18,7 @@ class GenerativeBlock(nn.Module):
 
         self.top_most = kwargs.get('input') is None
 
-    def inference(self, inference_input, type:str):
+    def inference(self, inference_input, type: str):
         """
         :param inference_input: An float tensor
         :param type: A string from ['posterior', 'prior']
@@ -39,4 +39,3 @@ class GenerativeBlock(nn.Module):
 
         assert self.top_most
         return self.out(sequence_input, vector_input)
-
