@@ -18,51 +18,82 @@ class VAE(nn.Module):
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=15, hidden_size=15, num_layers=1),
+                input=SeqToSeq(input_size=15, hidden_size=40, num_layers=1),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=30, hidden_size=30, num_layers=1),
-                    ParametersInference(input_size=60, latent_size=55, h_size=60)
+                    SeqToVec(input_size=80, hidden_size=80, num_layers=1),
+                    ParametersInference(input_size=160, latent_size=100, h_size=150)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=15 + 30, hidden_size=45, num_layers=1),
+                input=SeqToSeq(input_size=15 + 80, hidden_size=100, num_layers=1),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=90, hidden_size=70, num_layers=1),
-                    ParametersInference(input_size=140, latent_size=20, h_size=120)
+                    SeqToVec(input_size=200, hidden_size=50, num_layers=1),
+                    ParametersInference(input_size=100, latent_size=50, h_size=100)
+                ),
+                out=lambda x: x
+            ),
+
+            InferenceBlock(
+                input=SeqToSeq(input_size=15 + 200, hidden_size=50, num_layers=1),
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=100, hidden_size=25, num_layers=1),
+                    ParametersInference(input_size=50, latent_size=10, h_size=50)
                 )
             )
         ])
 
         self.iaf = nn.ModuleList([
-            IAF(latent_size=55, h_size=60),
-            IAF(latent_size=20, h_size=120)
+            IAF(latent_size=100, h_size=150),
+            IAF(latent_size=50, h_size=100),
+            IAF(latent_size=10, h_size=50),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=nn.Sequential(
-                    SeqToVec(input_size=vocab_size, hidden_size=25, num_layers=1),
-                    ParametersInference(input_size=50, latent_size=55)
+                posterior=ParametersInference(100, latent_size=100),
+                input=nn.Sequential(
+                    nn.utils.weight_norm(nn.Linear(100, 100)),
+                    nn.SELU()
                 ),
-                input=SeqToSeq(input_size=vocab_size, hidden_size=25, num_layers=1),
-                prior=nn.Sequential(
-                    SeqToVec(input_size=50, hidden_size=25, num_layers=1),
-                    ParametersInference(input_size=50, latent_size=55)
-                ),
-                out=VecToSeq(50 + 15, z_size=55, hidden_size=40, num_layers=1,
-                             out=weight_norm(nn.Linear(40, vocab_size))),
+                prior=ParametersInference(100, latent_size=100),
+                out=nn.Sequential(
+                    nn.utils.weight_norm(nn.Linear(100 + 100, 220)),
+                    nn.SELU(),
+                    nn.utils.weight_norm(nn.Linear(220, 240)),
+                    nn.SELU()
+                )
             ),
 
             GenerativeBlock(
-                out=VecToSeq(15, z_size=20, hidden_size=30, num_layers=2, out=weight_norm(nn.Linear(30, vocab_size))),
+                posterior=ParametersInference(30, latent_size=50),
+                input=nn.Sequential(
+                    nn.utils.weight_norm(nn.Linear(30, 40)),
+                    nn.SELU()
+                ),
+                prior=ParametersInference(40, latent_size=50),
+                out=nn.Sequential(
+                    nn.utils.weight_norm(nn.Linear(50 + 40, 90)),
+                    nn.SELU(),
+                    nn.utils.weight_norm(nn.Linear(90, 100)),
+                    nn.SELU()
+                )
+            ),
+
+            GenerativeBlock(
+                out=nn.Sequential(
+                    weight_norm(nn.Linear(10, 15)),
+                    nn.SELU(),
+                    nn.utils.weight_norm(nn.Linear(15, 30)),
+                    nn.SELU()
+                )
             )
         ])
 
-        self.out = SeqToSeq(15 + 15, 15, 1, bidirectional=True, out=weight_norm(nn.Linear(30, vocab_size))),
+        self.out = VecToSeq(15, 240, hidden_size=140, num_layers=2, out=weight_norm(nn.Linear(140, vocab_size)))
 
-        self.latent_size = [55, 20]
+        self.latent_size = [100, 50, 10]
         self.vae_length = len(self.inference)
 
     def forward(self, input, generator_input, lengths, generator_lengths):
@@ -78,25 +109,45 @@ class VAE(nn.Module):
 
         posterior_parameters = []
 
-        input = self.embedding(input, lengths)
-        generator_input = self.embedding(generator_input)
-        packed_generator_input = pack_padded_sequence(generator_input, generator_lengths, True)
+        '''
+        Pickup embeddings for input sequences
+        
+        Residual input is used in order to 
+        concat determenistic output from every layer with input sequence
+        '''
+        input = self.embedding(input)
+        residual = input
+        input = pack_padded_sequence(input, lengths, True)
 
+        generator_input = self.embedding(generator_input, generator_lengths)
+
+        '''
+        Bottom-up inference
+        Input goes through input op in order to obtain determenistic features
+        that will be used to get parameters of posterior
+        and to concat with residual input
+        '''
         for i in range(self.vae_length):
 
             if i < self.vae_length - 1:
                 out, parameters = self.inference[i](input)
 
-                [out, lengths] = pad_packed_sequence(out, batch_first=True)
-                [input, _] = pad_packed_sequence(input, batch_first=True)
+                [out, _] = pad_packed_sequence(out, batch_first=True)
 
-                input = t.cat([input, out], 2)
+                input = t.cat([residual, out], 2)
                 input = pack_padded_sequence(input, lengths, batch_first=True)
 
             else:
                 parameters = self.inference[i](input)
 
             posterior_parameters.append(parameters)
+
+        '''
+        Generation on top-most layer
+        
+        After sampling latent variables from diagonal gaussian, 
+        they are passed through IAF and then KLD is approximated with Monte Carlo method
+        '''
 
         [mu, std, h] = posterior_parameters[-1]
 
@@ -114,9 +165,15 @@ class VAE(nn.Module):
                                  log_det=log_det,
                                  posterior=[mu, std])
 
-        posterior = self.generation[-1](posterior, [packed_generator_input])
-        prior = self.generation[-1](prior, [packed_generator_input])
+        posterior = self.generation[-1](posterior)
+        prior = self.generation[-1](prior)
 
+        '''
+        Top-down inference
+        
+        Quite similar to generation on top-most layer, 
+        but for now parameters of posterior ar combined with bottom-up information
+        '''
         for i in range(self.vae_length - 2, -1, -1):
 
             posterior_determenistic = self.generation[i].input(posterior)
@@ -143,7 +200,23 @@ class VAE(nn.Module):
                                      posterior=[posterior_mu, posterior_std],
                                      prior=[prior_mu, prior_std])
 
-            posterior = self.generation[i].out(posterior, [posterior_determenistic, packed_generator_input])
+            posterior = self.generation[i].out(t.cat([posterior, posterior_determenistic], 1))
+
+            if i != 0:
+                '''
+                Since there no level below bottom-most, 
+                there no reason to pass prior through out operation
+                '''
+
+                eps = Variable(t.randn(*prior_mu.size()))
+                if cuda:
+                    eps = eps.cuda()
+
+                prior = eps * prior_std + prior_mu
+
+                prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1))
+
+        return self.out(posterior, generator_input)
 
     @staticmethod
     def kl_divergence(**kwargs):

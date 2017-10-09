@@ -30,12 +30,11 @@ class GenerativeBlock(nn.Module):
 
         return self.posterior(inference_input) if type == 'posterior' else self.prior(inference_input)
 
-    def forward(self, sequence_input, vector_input):
+    def forward(self, vector_input):
         """
-        :param sequence_input: An float tensor with shape of [batch_size, seq_len, sequence_size]
         :param vector_input: An float tensor with shape of [batch_size, vector_size]
         :return: result of out operation
         """
 
         assert self.top_most
-        return self.out(sequence_input, vector_input)
+        return self.out(vector_input)
