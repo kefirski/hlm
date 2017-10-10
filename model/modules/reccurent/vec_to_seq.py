@@ -21,7 +21,7 @@ class VecToSeq(nn.Module):
 
         self.out = out
 
-    def forward(self, z, input, pack=False):
+    def forward(self, z, input, initial_state=None, pack=False):
         """
         :param input: An float tensor with shape of [batch_size, seq_len, input_size]
         :param z: An float tensor with shape of [batch_size, z_size]
@@ -42,7 +42,7 @@ class VecToSeq(nn.Module):
         if is_packed_seq:
             input = pack_padded_sequence(input, lengths, batch_first=True)
 
-        result, _ = self.rnn(input)
+        result, fs = self.rnn(input, initial_state)
 
         if self.out is None:
             return result
@@ -51,5 +51,5 @@ class VecToSeq(nn.Module):
             result, lengths = pad_packed_sequence(result, batch_first=True)
 
         result = self.out(result)
-        return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True)
+        return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True), fs
 

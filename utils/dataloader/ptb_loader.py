@@ -2,7 +2,9 @@ import collections
 import os
 
 import numpy as np
+import torch as t
 from six.moves import cPickle
+from torch.autograd import Variable
 
 
 class PTBLoader():
@@ -120,6 +122,15 @@ class PTBLoader():
 
         return self.construct_batches(lines)
 
+    def torch_batch(self, batch_size, target, cuda):
+
+        (input, lengths), (gen_input, gen_lengths), (target, _) = self.next_batch(batch_size, target)
+        [input, gen_input, target] = [Variable(t.from_numpy(var)) for var in [input, gen_input, target]]
+        if cuda:
+            [input, gen_input, target] = [var.cuda() for var in [input, gen_input, target]]
+
+        return (input, lengths), (gen_input, gen_lengths), target
+
     @staticmethod
     def sort_sequences(xs):
         """
@@ -162,3 +173,23 @@ class PTBLoader():
         stop = [self.char_to_idx[self.stop_token]] if stop else []
 
         return go + line + stop
+
+    def go_input(self, batch_size, use_cuda):
+
+        go_input = np.array([[self.char_to_idx[self.go_token]]] * batch_size)
+        go_input = Variable(t.from_numpy(go_input)).long()
+
+        if use_cuda:
+            go_input = go_input.cuda()
+
+        return go_input
+
+    def sample_char(self, p):
+        """
+        :param p: An array of probabilities
+        :return: An index of sampled from distribution character
+        """
+
+        # idx = np.random.choice(len(p), p=p.ravel())
+        idx = np.argmax(p)
+        return idx, self.idx_to_char[idx]

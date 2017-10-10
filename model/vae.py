@@ -1,7 +1,9 @@
 from math import log, pi
+import numpy as np
 
 import torch as t
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.utils import weight_norm
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -216,7 +218,7 @@ class VAE(nn.Module):
 
                 prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1))
 
-        return self.out(posterior, generator_input)
+        return self.out(posterior, generator_input)[0], kld
 
     @staticmethod
     def kl_divergence(**kwargs):
@@ -227,7 +229,7 @@ class VAE(nn.Module):
             kwargs['prior'] = [Variable(t.zeros(*kwargs['z'].size())),
                                Variable(t.ones(*kwargs['z'].size()))]
 
-        lambda_par = Variable(t.FloatTensor([1]))
+        lambda_par = Variable(t.FloatTensor([2]))
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
@@ -242,3 +244,70 @@ class VAE(nn.Module):
     def log_gauss(z, params):
         [mu, std] = params
         return - 0.5 * (t.pow(z - mu, 2) * t.pow(std + 1e-8, -2) + 2 * t.log(std + 1e-8) + log(2 * pi)).sum(1)
+
+    def sample(self, max_seq_len, cuda, batch_loader, z=None):
+        """
+        :param z: An array of variables from normal distribution each with shape of [batch_size, latent_size[i]]
+        :return: Sample from generative model
+        """
+
+        if z is None:
+            z = [Variable(t.randn(1, size)) for size in self.latent_size]
+
+            if cuda:
+                z = [var.cuda() for var in z]
+
+        top_variable = z[-1]
+
+        out = self.generation[-1].out(top_variable)
+
+        for i in range(self.vae_length - 2, -1, -1):
+            determenistic = self.generation[i].input(out)
+
+            [mu, std, _] = self.generation[i].prior(determenistic)
+            prior = z[i] * std + mu
+            out = self.generation[i].out(t.cat([prior, determenistic], 1))
+
+        z = out
+        del out
+
+        initial_state = None
+
+        input = batch_loader.go_input(1, cuda)
+        input = self.embedding(input)
+
+        result = ''
+
+        for i in range(max_seq_len):
+
+            logits, initial_state = self.out(z, input, initial_state=initial_state)
+
+            logits = logits.view(-1, self.vocab_size)
+            prediction = F.softmax(logits).data.cpu().numpy()[-1]
+
+            idx, char = batch_loader.sample_char(prediction)
+
+            if char == batch_loader.stop_token:
+                break
+
+            result += char
+
+            input = Variable(t.from_numpy(np.array([[idx]])))
+            if cuda:
+                input = input.cuda()
+            input = self.embedding(input)
+
+        return result
+
+    def loss(self, input, generator_input, lengths, generator_lengths, target, criterion):
+
+        out, kld = self(input, generator_input, lengths, generator_lengths)
+        out = pad_packed_sequence(out, batch_first=True)[0]
+
+        [batch_size, _] = target.size()
+
+        out = out.contiguous().view(-1, self.vocab_size)
+        target = target.view(-1)
+        likelihood = criterion(out, target) / batch_size
+
+        return likelihood, kld
