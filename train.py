@@ -20,7 +20,7 @@ if __name__ == "__main__":
                         help='learning rate (default: 0.0005)')
     parser.add_argument('--save', type=str, default='trained_model', metavar='TS',
                         help='path where save trained model to (default: "trained_model")')
-    parser.add_argument('--tensorboard', type=str, default='hlv', metavar='TB',
+    parser.add_argument('--tensorboard', type=str, default='default_tb', metavar='TB',
                         help='Name for tensorboard model')
     args = parser.parse_args()
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
             likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function)
 
-            likelihood = likelihood.cpu().data.numpy()[0]
+            likelihood = likelihood.cpu().data.numpy()[0] / sum(lengths)
             kld = kld.cpu().data.numpy()[0]
 
             print('iteration {}, likelihood {} kld {}'.format(iteration, likelihood, kld))
@@ -64,4 +64,5 @@ if __name__ == "__main__":
             writer.add_scalar('kld', kld, iteration)
 
             sampling = vae.sample(200, args.use_cuda, dataloader)
-            writer.add_text(sampling, 'text logged at step:' + str(iteration), iteration)
+            print('_________')
+            print(sampling)

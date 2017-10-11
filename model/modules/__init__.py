@@ -6,3 +6,4 @@ from .abstract_vae.generative import GenerativeBlock
 from .abstract_vae.inference import InferenceBlock
 from .embedding import Embedding
 from .latent.iaf.iaf import IAF
+from .latent.iaf.highway import Highway
