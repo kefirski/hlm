@@ -189,7 +189,7 @@ class VAE(nn.Module):
 
             eps = Variable(t.randn(*posterior_mu.size()))
             if cuda:
-                eps.cuda()
+                eps = eps.cuda()
 
             posterior_gauss = eps * posterior_std + posterior_mu
             posterior, log_det = self.iaf[i](posterior_gauss, h)
@@ -234,7 +234,7 @@ class VAE(nn.Module):
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
             kwargs['prior'] = [var.cuda() for var in kwargs['prior']]
-            
+
         log_p_z = VAE.log_gauss(kwargs['z'], kwargs['prior'])
 
         result = log_p_z_x - log_p_z
