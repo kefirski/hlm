@@ -190,6 +190,6 @@ class PTBLoader():
         :return: An index of sampled from distribution character
         """
 
-        # idx = np.random.choice(len(p), p=p.ravel())
-        idx = np.argmax(p)
+        idx = np.random.choice(len(p), p=p.ravel())
+        # idx = np.argmax(p)
         return idx, self.idx_to_char[idx]

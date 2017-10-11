@@ -53,7 +53,7 @@ if __name__ == "__main__":
             (input, lengths), (gen_input, gen_lengths), target = \
                 dataloader.torch_batch(args.batch_size, 'valid', args.use_cuda)
 
-            likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function)
+            likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function, False)
 
             likelihood = likelihood.cpu().data.numpy()[0] / sum(lengths)
             kld = kld.cpu().data.numpy()[0]
