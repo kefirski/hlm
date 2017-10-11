@@ -63,5 +63,5 @@ if __name__ == "__main__":
             writer.add_scalar('likelihood', likelihood, iteration)
             writer.add_scalar('kld', kld, iteration)
 
-            sampling = vae.sample(200, False, dataloader)
+            sampling = vae.sample(200, args.use_cuda, dataloader)
             writer.add_text(sampling, 'text logged at step:' + str(iteration), iteration)
