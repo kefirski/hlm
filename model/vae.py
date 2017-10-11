@@ -1,6 +1,6 @@
 from math import log, pi
-import numpy as np
 
+import numpy as np
 import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
@@ -233,8 +233,8 @@ class VAE(nn.Module):
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
-            for var in kwargs['prior']:
-                var.cuda()
+            kwargs['prior'] = [var.cuda() for var in kwargs['prior']]
+            
         log_p_z = VAE.log_gauss(kwargs['z'], kwargs['prior'])
 
         result = log_p_z_x - log_p_z
