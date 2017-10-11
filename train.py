@@ -55,9 +55,10 @@ if __name__ == "__main__":
 
             likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function)
 
-            print('iteration {}, likelihood {} kld {}'.format(iteration,
-                                                              likelihood.cpu().data.numpy()[0],
-                                                              kld.cpu().data.numpy()[0]))
+            likelihood = likelihood.cpu().data.numpy()[0]
+            kld = kld.cpu().data.numpy()[0]
+
+            print('iteration {}, likelihood {} kld {}'.format(iteration, likelihood, kld))
 
             writer.add_scalar('likelihood', likelihood, iteration)
             writer.add_scalar('kld', kld, iteration)
