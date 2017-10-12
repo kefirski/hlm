@@ -106,7 +106,7 @@ class PTBLoader():
 
         self.num_lines = [len(target) for target in self.data]
 
-    def next_batch(self, batch_size, target):
+    def next_batch(self, batch_size, target, drop_prob):
         """
         :param batch_size: number of selected data elements
         :param target: target from ['test', 'train', 'valid']
@@ -117,14 +117,16 @@ class PTBLoader():
         target = self.target_idx[target]
 
         indexes = np.random.randint(self.num_lines[target], size=batch_size)
-        lines = np.array([self.data[target][idx][:] for idx in indexes])
+        lines = np.array([[index * np.random.binomial(1, 1 - drop_prob, 1)[0]
+                           for index in self.data[target][idx][:]]
+                          for idx in indexes])
         del indexes
 
         return self.construct_batches(lines)
 
-    def torch_batch(self, batch_size, target, cuda):
+    def torch_batch(self, batch_size, target, cuda, drop_prob):
 
-        (input, lengths), (gen_input, gen_lengths), (target, _) = self.next_batch(batch_size, target)
+        (input, lengths), (gen_input, gen_lengths), (target, _) = self.next_batch(batch_size, target, drop_prob)
         [input, gen_input, target] = [Variable(t.from_numpy(var)) for var in [input, gen_input, target]]
         if cuda:
             [input, gen_input, target] = [var.cuda() for var in [input, gen_input, target]]
