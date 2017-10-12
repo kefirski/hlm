@@ -63,7 +63,7 @@ if __name__ == "__main__":
             print('iteration {}, likelihood {} likelihood seq {} kld {}'.format(iteration, likelihood / args.batch_size,
                                                                                 likelihood / sum(lengths), kld))
 
-            writer.add_scalar('likelihood', likelihood / args.batch_size, iteration)
+            writer.add_scalar('likelihood', likelihood / sum(lengths), iteration)
             writer.add_scalar('kld', kld, iteration)
 
             sampling = vae.sample(200, args.use_cuda, dataloader)
