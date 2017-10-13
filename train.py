@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
         if iteration % 5 == 0:
             (input, lengths), (gen_input, gen_lengths), target = \
-                dataloader.torch_batch(args.batch_size, 'valid', args.use_cuda, 0.)
+                dataloader.torch_batch(args.batch_size, 'valid', args.use_cuda, 0., volatile=True)
 
             likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function, False)
 

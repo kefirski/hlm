@@ -122,10 +122,11 @@ class PTBLoader():
 
         return self.construct_batches(lines, drop_prob)
 
-    def torch_batch(self, batch_size, target, cuda, drop_prob):
+    def torch_batch(self, batch_size, target, cuda, drop_prob, volatile=False):
 
         (input, lengths), (gen_input, gen_lengths), (target, _) = self.next_batch(batch_size, target, drop_prob)
-        [input, gen_input, target] = [Variable(t.from_numpy(var)) for var in [input, gen_input, target]]
+        [input, gen_input, target] = [Variable(t.from_numpy(var), volatile=volatile)
+                                      for var in [input, gen_input, target]]
         if cuda:
             [input, gen_input, target] = [var.cuda() for var in [input, gen_input, target]]
 
