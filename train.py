@@ -1,4 +1,5 @@
 import argparse
+from math import tanh
 
 import torch.nn as nn
 from tensorboardX import SummaryWriter
@@ -6,6 +7,11 @@ from torch.optim import Adam
 
 from model.vae import VAE
 from utils.dataloader.ptb_loader import PTBLoader
+
+
+def kl_coef(x):
+    return tanh(x / 8000)
+
 
 if __name__ == "__main__":
 
@@ -46,7 +52,7 @@ if __name__ == "__main__":
         optimizer.zero_grad()
 
         likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function)
-        loss = likelihood + kld
+        loss = likelihood + kld * kl_coef(iteration)
 
         loss.backward()
         optimizer.step()

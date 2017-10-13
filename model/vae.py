@@ -56,14 +56,12 @@ class VAE(nn.Module):
         self.generation = nn.ModuleList([
             GenerativeBlock(
                 posterior=ParametersInference(100, latent_size=100),
-                input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(100, 100)),
-                    nn.SELU()
-                ),
+                input=Highway(100, 3, nn.ELU()),
                 prior=ParametersInference(100, latent_size=100),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(100 + 100, 220)),
                     nn.SELU(),
+                    Highway(220, 2, nn.ELU()),
                     nn.utils.weight_norm(nn.Linear(220, 240)),
                     nn.SELU()
                 )
@@ -73,14 +71,16 @@ class VAE(nn.Module):
                 posterior=ParametersInference(30, latent_size=50),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(30, 40)),
-                    nn.SELU()
+                    nn.ELU(),
+                    Highway(40, 3, nn.ELU())
                 ),
                 prior=ParametersInference(40, latent_size=50),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(50 + 40, 90)),
-                    nn.SELU(),
+                    nn.ELU(),
+                    Highway(90, 3, nn.ELU()),
                     nn.utils.weight_norm(nn.Linear(90, 100)),
-                    nn.SELU()
+                    nn.ELU()
                 )
             ),
 
