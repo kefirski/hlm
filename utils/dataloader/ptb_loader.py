@@ -117,12 +117,10 @@ class PTBLoader():
         target = self.target_idx[target]
 
         indexes = np.random.randint(self.num_lines[target], size=batch_size)
-        lines = np.array([[index * np.random.binomial(1, 1 - drop_prob, 1)[0]
-                           for index in self.data[target][idx][:]]
-                          for idx in indexes])
+        lines = np.array([self.data[target][idx][:] for idx in indexes])
         del indexes
 
-        return self.construct_batches(lines)
+        return self.construct_batches(lines, drop_prob)
 
     def torch_batch(self, batch_size, target, cuda, drop_prob):
 
@@ -143,7 +141,7 @@ class PTBLoader():
         argsort = np.argsort([len(batch) for batch in xs])[::-1]
         return xs[argsort]
 
-    def construct_batches(self, lines):
+    def construct_batches(self, lines, drop_prob):
         """
         :param lines: An list of indexes arrays
         :return: Batches
@@ -154,6 +152,8 @@ class PTBLoader():
         encoder_input = [self.add_token(line, go=True, stop=True) for line in lines]
         decoder_input = [self.add_token(line, go=True) for line in lines]
         decoder_target = [self.add_token(line, stop=True) for line in lines]
+
+        decoder_input = [[idx * np.random.binomial(1, 1 - drop_prob, 1)[0] for idx in line] for line in decoder_input]
 
         encoder_input = self.padd_sequences(encoder_input)
         decoder_input = self.padd_sequences(decoder_input)
