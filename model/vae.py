@@ -24,7 +24,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=100)
+                    ParametersInference(input_size=200, latent_size=100, h_size=150)
                 ),
                 out=lambda x: x
             ),
@@ -33,7 +33,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=50)
+                    ParametersInference(input_size=200, latent_size=50, h_size=100)
                 ),
                 out=lambda x: x
             ),
@@ -47,11 +47,6 @@ class VAE(nn.Module):
             )
         ])
 
-        self.h_inference = nn.ModuleList([
-            SeqToVec(input_size=200 + 100, hidden_size=150, num_layers=2),
-            SeqToVec(input_size=200 + 60, hidden_size=100, num_layers=2)
-        ])
-
         self.iaf = nn.ModuleList([
             IAF(latent_size=100, h_size=2 * 150),
             IAF(latent_size=50, h_size=2 * 100),
@@ -60,9 +55,9 @@ class VAE(nn.Module):
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(100, latent_size=100, h_size=100),
+                posterior=ParametersInference(100, latent_size=100),
                 input=Highway(100, 3, nn.ELU()),
-                prior=ParametersInference(100, latent_size=100),
+                prior=ParametersInference(100, latent_size=100, h_size=150),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(100 + 100, 220)),
                     nn.SELU(),
@@ -73,7 +68,7 @@ class VAE(nn.Module):
             ),
 
             GenerativeBlock(
-                posterior=ParametersInference(30, latent_size=50, h_size=60),
+                posterior=ParametersInference(30, latent_size=50, h_size=100),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(30, 40)),
                     nn.ELU(),
@@ -120,7 +115,7 @@ class VAE(nn.Module):
 
         '''
         Pickup embeddings for input sequences
-        
+
         Residual input is used in order to 
         concat determenistic output from every layer with input sequence
         '''
@@ -139,16 +134,9 @@ class VAE(nn.Module):
         for i in range(self.vae_length):
 
             if i < self.vae_length - 1:
-                '''
-                For not top-most layers, 
-                additional input from obtaining posterior parameters is constructed from determenistic sequence, 
-                that will be combined with top-down information
-                '''
                 out, parameters = self.inference[i](input)
 
                 [out, _] = pad_packed_sequence(out, batch_first=True)
-
-                parameters = parameters[:2] + [out]
 
                 input = t.cat([residual, out], 2)
                 input = pack_padded_sequence(input, lengths, batch_first=True)
@@ -160,7 +148,7 @@ class VAE(nn.Module):
 
         '''
         Generation on top-most layer
-        
+
         After sampling latent variables from diagonal gaussian, 
         they are passed through IAF and then KLD is approximated with Monte Carlo method
         '''
@@ -186,7 +174,7 @@ class VAE(nn.Module):
 
         '''
         Top-down inference
-        
+
         Quite similar to generation on top-most layer, 
         but for now parameters of posterior ar combined with bottom-up information
         '''
@@ -195,15 +183,10 @@ class VAE(nn.Module):
             posterior_determenistic = self.generation[i].input(posterior)
             prior_determenistic = self.generation[i].input(prior)
 
-            [top_down_mu, top_down_std, h] = self.generation[i].inference(posterior, 'posterior')
-            [bottom_up_mu, bottom_up_std, h_seq] = posterior_parameters[i]
+            [top_down_mu, top_down_std, top_down_h] = self.generation[i].inference(posterior, 'posterior')
+            [bottom_up_mu, bottom_up_std, bottom_up_h] = posterior_parameters[i]
 
-            seq_len = h_seq.size(1)
-            h = h.unsqueeze(1).repeat(1, seq_len, 1)
-            h_seq = t.cat([h_seq, h], 2)
-            h_seq = pack_padded_sequence(h_seq, lengths, batch_first=True)
-
-            h = self.h_inference[i](h_seq)
+            h = t.cat([top_down_h, bottom_up_h], 1)
 
             posterior_mu = top_down_mu + bottom_up_mu
             posterior_std = top_down_std + bottom_up_std
