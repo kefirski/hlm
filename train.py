@@ -6,7 +6,8 @@ from tensorboardX import SummaryWriter
 from torch.optim import Adam
 
 from model.vae import VAE
-from utils.dataloader.ptb_loader import PTBLoader
+from utils.ptb_dataloader.ptb_loader import PTBLoader
+from utils.twitter_dataloader.twitter_dataloader import TwitterLoader
 
 
 def kl_coef(x):
@@ -34,7 +35,8 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(args.tensorboard)
 
-    dataloader = PTBLoader('utils/dataloader/data/')
+    # dataloader = PTBLoader('utils/ptb_dataloader/data/')
+    dataloader = TwitterLoader('utils/twitter_dataloader/twitter_data/')
 
     vae = VAE(vocab_size=dataloader.vocab_size)
     if args.use_cuda:

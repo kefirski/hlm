@@ -16,7 +16,7 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
 
         self.vocab_size = vocab_size
-        self.embedding_size = 80
+        self.embedding_size = 160
         self.embedding = Embedding(self.vocab_size, embedding_size=self.embedding_size)
 
         self.inference = nn.ModuleList([
@@ -48,14 +48,14 @@ class VAE(nn.Module):
         ])
 
         self.iaf = nn.ModuleList([
-            IAF(latent_size=100, h_size=2 * 150),
-            IAF(latent_size=50, h_size=2 * 100),
+            IAF(latent_size=100, h_size=150),
+            IAF(latent_size=50, h_size=100),
             IAF(latent_size=10, h_size=50),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(100, latent_size=100, h_size=150),
+                posterior=ParametersInference(100, latent_size=100),
                 input=Highway(100, 3, nn.ELU()),
                 prior=ParametersInference(100, latent_size=100),
                 out=nn.Sequential(
@@ -68,7 +68,7 @@ class VAE(nn.Module):
             ),
 
             GenerativeBlock(
-                posterior=ParametersInference(30, latent_size=50, h_size=100),
+                posterior=ParametersInference(30, latent_size=50),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(30, 40)),
                     nn.ELU(),
@@ -183,10 +183,8 @@ class VAE(nn.Module):
             posterior_determenistic = self.generation[i].input(posterior)
             prior_determenistic = self.generation[i].input(prior)
 
-            [top_down_mu, top_down_std, top_down_h] = self.generation[i].inference(posterior, 'posterior')
-            [bottom_up_mu, bottom_up_std, bottom_up_h] = posterior_parameters[i]
-            
-            h = t.cat([top_down_h, bottom_up_h], 1)
+            [top_down_mu, top_down_std, _] = self.generation[i].inference(posterior, 'posterior')
+            [bottom_up_mu, bottom_up_std, h] = posterior_parameters[i]
 
             posterior_mu = top_down_mu + bottom_up_mu
             posterior_std = top_down_std + bottom_up_std

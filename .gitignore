@@ -19,6 +19,7 @@ preprocessings/
 .eggs/
 experimentation.py
 default_tb/
+twitter_data/
 lib/
 lib64/
 parts/
