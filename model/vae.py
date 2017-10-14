@@ -24,7 +24,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=100, h_size=150)
+                    ParametersInference(input_size=200, latent_size=100)
                 ),
                 out=lambda x: x
             ),
@@ -33,7 +33,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=50, h_size=100)
+                    ParametersInference(input_size=200, latent_size=50)
                 ),
                 out=lambda x: x
             ),
@@ -47,15 +47,20 @@ class VAE(nn.Module):
             )
         ])
 
+        self.h_inference = nn.ModuleList([
+            SeqToVec(input_size=200 + 100, hidden_size=150, num_layers=2),
+            SeqToVec(input_size=200 + 60, hidden_size=100, num_layers=2)
+        ])
+
         self.iaf = nn.ModuleList([
-            IAF(latent_size=100, h_size=150),
-            IAF(latent_size=50, h_size=100),
+            IAF(latent_size=100, h_size=2 * 150),
+            IAF(latent_size=50, h_size=2 * 100),
             IAF(latent_size=10, h_size=50),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(100, latent_size=100),
+                posterior=ParametersInference(100, latent_size=100, h_size=100),
                 input=Highway(100, 3, nn.ELU()),
                 prior=ParametersInference(100, latent_size=100),
                 out=nn.Sequential(
@@ -68,7 +73,7 @@ class VAE(nn.Module):
             ),
 
             GenerativeBlock(
-                posterior=ParametersInference(30, latent_size=50),
+                posterior=ParametersInference(30, latent_size=50, h_size=60),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(30, 40)),
                     nn.ELU(),
@@ -134,9 +139,16 @@ class VAE(nn.Module):
         for i in range(self.vae_length):
 
             if i < self.vae_length - 1:
+                '''
+                For not top-most layers, 
+                additional input from obtaining posterior parameters is constructed from determenistic sequence, 
+                that will be combined with top-down information
+                '''
                 out, parameters = self.inference[i](input)
 
                 [out, _] = pad_packed_sequence(out, batch_first=True)
+
+                parameters = parameters[:2] + [out]
 
                 input = t.cat([residual, out], 2)
                 input = pack_padded_sequence(input, lengths, batch_first=True)
@@ -183,8 +195,15 @@ class VAE(nn.Module):
             posterior_determenistic = self.generation[i].input(posterior)
             prior_determenistic = self.generation[i].input(prior)
 
-            [top_down_mu, top_down_std, _] = self.generation[i].inference(posterior, 'posterior')
-            [bottom_up_mu, bottom_up_std, h] = posterior_parameters[i]
+            [top_down_mu, top_down_std, h] = self.generation[i].inference(posterior, 'posterior')
+            [bottom_up_mu, bottom_up_std, h_seq] = posterior_parameters[i]
+
+            seq_len = h_seq.size(1)
+            h = h.unsqueeze(1).repeat(1, seq_len, 1)
+            h_seq = t.cat([h_seq, h], 2)
+            h_seq = pack_padded_sequence(h_seq, lengths, batch_first=True)
+
+            h = self.h_inference[i](h_seq)
 
             posterior_mu = top_down_mu + bottom_up_mu
             posterior_std = top_down_std + bottom_up_std
@@ -231,7 +250,7 @@ class VAE(nn.Module):
             kwargs['prior'] = [Variable(t.zeros(*kwargs['z'].size())),
                                Variable(t.ones(*kwargs['z'].size()))]
 
-        lambda_par = Variable(t.FloatTensor([2]))
+        lambda_par = Variable(t.FloatTensor([4.5]))
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()

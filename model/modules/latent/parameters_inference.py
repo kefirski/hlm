@@ -18,4 +18,4 @@ class ParametersInference(nn.Module):
         std = (0.5 * self.std(input)).exp()
         h = self.h(input) if self.h is not None else None
 
-        return mu, std, h
+        return [mu, std, h]
