@@ -185,7 +185,7 @@ class VAE(nn.Module):
 
             [top_down_mu, top_down_std, top_down_h] = self.generation[i].inference(posterior, 'posterior')
             [bottom_up_mu, bottom_up_std, bottom_up_h] = posterior_parameters[i]
-            print(i)
+            
             h = t.cat([top_down_h, bottom_up_h], 1)
 
             posterior_mu = top_down_mu + bottom_up_mu
