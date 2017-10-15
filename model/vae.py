@@ -55,46 +55,49 @@ class VAE(nn.Module):
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(100, latent_size=100),
-                input=Highway(100, 3, nn.ELU()),
-                prior=ParametersInference(100, latent_size=100),
-                out=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(100 + 100, 220)),
-                    nn.SELU(),
-                    Highway(220, 2, nn.ELU()),
-                    nn.utils.weight_norm(nn.Linear(220, 240)),
-                    nn.SELU()
-                )
-            ),
-
-            GenerativeBlock(
-                posterior=ParametersInference(30, latent_size=50),
+                posterior=ParametersInference(495, latent_size=100),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(30, 40)),
+                    nn.utils.weight_norm(nn.Linear(495, 120)),
                     nn.ELU(),
-                    Highway(40, 3, nn.ELU())
+                    Highway(120, 3, nn.ELU())
                 ),
-                prior=ParametersInference(40, latent_size=50),
+                prior=ParametersInference(120, latent_size=100),
                 out=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(50 + 40, 90)),
+                    nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2),
                     nn.ELU(),
-                    Highway(90, 3, nn.ELU()),
-                    nn.utils.weight_norm(nn.Linear(90, 100)),
-                    nn.ELU()
+                    nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2),
+                    nn.ELU(),
+                )
+            ),
+
+            GenerativeBlock(
+                posterior=ParametersInference(195, latent_size=50),
+                input=nn.Sequential(
+                    nn.utils.weight_norm(nn.Linear(195, 80)),
+                    nn.ELU(),
+                    Highway(80, 3, nn.ELU())
+                ),
+                prior=ParametersInference(80, latent_size=50),
+                out=nn.Sequential(
+                    nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2),
+                    nn.ELU(),
+                    nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2),
+                    nn.ELU(),
                 )
             ),
 
             GenerativeBlock(
                 out=nn.Sequential(
-                    weight_norm(nn.Linear(10, 15)),
-                    nn.SELU(),
-                    nn.utils.weight_norm(nn.Linear(15, 30)),
-                    nn.SELU()
+                    nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2),
+                    nn.ELU(),
+                    nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=2),
+                    nn.ELU(),
+
                 )
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 240, hidden_size=140, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 600, hidden_size=140, num_layers=3,
                             out=nn.Sequential(
                                 Highway(140, 2, nn.ELU()),
                                 weight_norm(nn.Linear(140, vocab_size))
@@ -111,6 +114,8 @@ class VAE(nn.Module):
         :param generator_lengths: An list with length of batch_size with lengths of every batch sequence
         :return: An float tensor with shape of [batch_size, seq_len, vocab_size]
         """
+
+        batch_size = input.size(0)
 
         cuda = input.is_cuda
 
@@ -172,8 +177,14 @@ class VAE(nn.Module):
                                  log_det=log_det,
                                  posterior=[mu, std])
 
+        posterior = posterior.view(batch_size, 10, -1)
+        prior = prior.view(batch_size, 10, -1)
+
         posterior = self.generation[-1](posterior)
         prior = self.generation[-1](prior)
+
+        posterior = posterior.view(batch_size, -1)
+        prior = prior.view(batch_size, -1)
 
         '''
         Top-down inference
@@ -207,7 +218,8 @@ class VAE(nn.Module):
                                      posterior=[posterior_mu, posterior_std],
                                      prior=[prior_mu, prior_std])
 
-            posterior = self.generation[i].out(t.cat([posterior, posterior_determenistic], 1))
+            posterior = self.generation[i].out(t.cat([posterior, posterior_determenistic], 1).view(batch_size, 10, -1))
+            posterior = posterior.view(batch_size, -1)
 
             if i != 0:
                 '''
@@ -221,7 +233,8 @@ class VAE(nn.Module):
 
                 prior = eps * prior_std + prior_mu
 
-                prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1))
+                prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1).view(batch_size, 10, -1))
+                prior = prior.view(batch_size, -1)
 
         return self.out(posterior, generator_input)[0], kld
 
@@ -234,7 +247,7 @@ class VAE(nn.Module):
             kwargs['prior'] = [Variable(t.zeros(*kwargs['z'].size())),
                                Variable(t.ones(*kwargs['z'].size()))]
 
-        lambda_par = Variable(t.FloatTensor([6]))
+        lambda_par = Variable(t.FloatTensor([5]))
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
@@ -262,16 +275,18 @@ class VAE(nn.Module):
             if cuda:
                 z = [var.cuda() for var in z]
 
-        top_variable = z[-1]
+        top_variable = z[-1].view(1, 10, -1)
 
         out = self.generation[-1].out(top_variable)
+        out = out.view(1, -1)
 
         for i in range(self.vae_length - 2, -1, -1):
             determenistic = self.generation[i].input(out)
 
             [mu, std, _] = self.generation[i].prior(determenistic)
             prior = z[i] * std + mu
-            out = self.generation[i].out(t.cat([prior, determenistic], 1))
+            out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
+            out = out.view(1, -1)
 
         z = out
         del out

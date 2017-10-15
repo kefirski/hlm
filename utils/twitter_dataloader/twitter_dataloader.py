@@ -81,7 +81,7 @@ class TwitterLoader():
 
         self.vocab_size, self.idx_to_char, self.char_to_idx = self.build_vocab(' '.join(self.data))
 
-        self.data = [[line[1:-1] for line in target.split('\n')[:-1]] for target in self.data]
+        self.data = [[line[:-1] for line in target.split('\n')[:-1]] for target in self.data]
 
         self.num_lines = [len(target) for target in self.data]
 
