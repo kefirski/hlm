@@ -95,7 +95,10 @@ class VAE(nn.Module):
         ])
 
         self.out = VecToSeq(self.embedding_size, 240, hidden_size=140, num_layers=3,
-                            out=weight_norm(nn.Linear(140, vocab_size)))
+                            out=nn.Sequential(
+                                Highway(140, 2, nn.ELU()),
+                                weight_norm(nn.Linear(140, vocab_size))
+                            ))
 
         self.latent_size = [100, 50, 10]
         self.vae_length = len(self.inference)
@@ -231,7 +234,7 @@ class VAE(nn.Module):
             kwargs['prior'] = [Variable(t.zeros(*kwargs['z'].size())),
                                Variable(t.ones(*kwargs['z'].size()))]
 
-        lambda_par = Variable(t.FloatTensor([4.5]))
+        lambda_par = Variable(t.FloatTensor([6]))
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
