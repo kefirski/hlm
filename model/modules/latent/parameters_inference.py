@@ -1,16 +1,26 @@
 import torch.nn as nn
 
+from ..conv.resnet import ResNet
+
 
 class ParametersInference(nn.Module):
     def __init__(self, input_size, latent_size, h_size=None):
         super(ParametersInference, self).__init__()
 
-        self.mu = nn.utils.weight_norm(nn.Linear(input_size, latent_size))
-        self.std = nn.utils.weight_norm(nn.Linear(input_size, latent_size))
+        self.mu = nn.Sequential(
+            ResNet(1, num_layers=4),
+            nn.utils.weight_norm(nn.Linear(input_size, latent_size))
+        )
+
+        self.std = nn.Sequential(
+            ResNet(1, num_layers=4),
+            nn.utils.weight_norm(nn.Linear(input_size, latent_size))
+        )
 
         self.h = nn.Sequential(
+            ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, h_size)),
-            nn.SELU()
+            nn.ELU()
         ) if h_size is not None else None
 
     def forward(self, input):

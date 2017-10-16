@@ -59,12 +59,15 @@ class VAE(nn.Module):
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(495, 120)),
                     nn.ELU(),
-                    Highway(120, 3, nn.ELU())
+                    ResNet(1, 3),
+                    nn.utils.weight_norm(nn.Linear(120, 120)),
+                    nn.ELU()
                 ),
                 prior=ParametersInference(120, latent_size=100),
                 out=nn.Sequential(
                     nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2),
                     nn.ELU(),
+                    ResNet(15, 3),
                     nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2),
                     nn.ELU(),
                 )
@@ -75,12 +78,15 @@ class VAE(nn.Module):
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(195, 80)),
                     nn.ELU(),
-                    Highway(80, 3, nn.ELU())
+                    ResNet(1, 3),
+                    nn.utils.weight_norm(nn.Linear(80, 80)),
+                    nn.ELU()
                 ),
                 prior=ParametersInference(80, latent_size=50),
                 out=nn.Sequential(
                     nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2),
                     nn.ELU(),
+                    ResNet(12, 3),
                     nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2),
                     nn.ELU(),
                 )

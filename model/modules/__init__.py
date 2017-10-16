@@ -7,3 +7,4 @@ from .abstract_vae.inference import InferenceBlock
 from .embedding import Embedding
 from .latent.iaf.iaf import IAF
 from .latent.iaf.highway import Highway
+from .conv.resnet import ResNet

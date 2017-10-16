@@ -2,7 +2,7 @@ import torch as t
 import torch.nn as nn
 
 from .autoregressive_linear import AutoregressiveLinear
-from .highway import Highway
+from model.modules.conv.resnet import ResNet
 
 
 class IAF(nn.Module):
@@ -12,7 +12,12 @@ class IAF(nn.Module):
         self.z_size = latent_size
         self.h_size = h_size
 
-        self.h = Highway(self.h_size, 3, nn.ELU())
+        self.h = nn.Sequential(
+            nn.utils.weight_norm(nn.Linear(self.h_size, self.h_size * 2)),
+            ResNet(1, 4),
+            nn.utils.weight_norm(nn.Linear(self.h_size * 2, self.h_size)),
+            nn.ELU()
+        )
 
         self.m = nn.Sequential(
             AutoregressiveLinear(self.z_size + self.h_size, self.z_size),
