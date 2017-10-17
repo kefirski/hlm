@@ -65,10 +65,10 @@ class VAE(nn.Module):
                 ),
                 prior=ParametersInference(120, latent_size=100),
                 out=nn.Sequential(
-                    nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
                     nn.ELU(),
                     ResNet(15, 3),
-                    nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2)),
                     nn.ELU(),
                 )
             ),
@@ -84,21 +84,21 @@ class VAE(nn.Module):
                 ),
                 prior=ParametersInference(80, latent_size=50),
                 out=nn.Sequential(
-                    nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
                     nn.ELU(),
-                    ResNet(12, 3),
-                    nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2),
+                    ResNet(12, 3, transpose=True),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
                     nn.ELU(),
                 )
             ),
 
             GenerativeBlock(
                 out=nn.Sequential(
-                    nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
                     nn.ELU(),
-                    nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=2),
+                    ResNet(12, 3, transpose=True),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=2)),
                     nn.ELU(),
-
                 )
             )
         ])

@@ -8,16 +8,19 @@ class ParametersInference(nn.Module):
         super(ParametersInference, self).__init__()
 
         self.mu = nn.Sequential(
+            nn.utils.weight_norm(nn.Linear(input_size, input_size)),
             ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, latent_size))
         )
 
         self.std = nn.Sequential(
+            nn.utils.weight_norm(nn.Linear(input_size, input_size)),
             ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, latent_size))
         )
 
         self.h = nn.Sequential(
+            nn.utils.weight_norm(nn.Linear(input_size, input_size)),
             ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, h_size)),
             nn.ELU()
