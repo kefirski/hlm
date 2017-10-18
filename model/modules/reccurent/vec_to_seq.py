@@ -34,9 +34,6 @@ class VecToSeq(nn.Module):
         if is_packed_seq:
             [input, lengths] = pad_packed_sequence(input, batch_first=True)
 
-        [_, seq_len, _] = input.size()
-        z = z.unsqueeze(1).repeat(1, seq_len, 1)
-
         input = t.cat([input, z], 2)
 
         if is_packed_seq:

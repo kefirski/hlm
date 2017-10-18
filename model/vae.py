@@ -70,6 +70,20 @@ class VAE(nn.Module):
                     ResNet(15, 3),
                     nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2)),
                     nn.ELU(),
+                    ResNet(20, 3),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(20, 25, kernel_size=3, stride=2, padding=0, dilation=2)),
+                    nn.ELU(),
+                    ResNet(25, 3),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(25, 27, kernel_size=3, stride=2, padding=0, dilation=2)),
+                    nn.ELU(),
+                    ResNet(27, 3),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(27, 30, kernel_size=3, stride=2, padding=0, dilation=2)),
+                    nn.ELU(),
+                    ResNet(30, 3),
+                    nn.utils.weight_norm(nn.ConvTranspose1d(30, 90, kernel_size=3, stride=2, padding=0, dilation=2)),
+                    nn.ELU(),
+
+                    nn.utils.weight_norm(nn.Linear(525, 519))
                 )
             ),
 
@@ -103,7 +117,7 @@ class VAE(nn.Module):
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 600, hidden_size=140, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 90, hidden_size=140, num_layers=3,
                             out=nn.Sequential(
                                 Highway(140, 2, nn.ELU()),
                                 weight_norm(nn.Linear(140, vocab_size))
@@ -242,6 +256,7 @@ class VAE(nn.Module):
                 prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1).view(batch_size, 10, -1))
                 prior = prior.view(batch_size, -1)
 
+        posterior = posterior.view(batch_size, 90, -1).transpose(1, 2)[:, :generator_lengths[0]]
         return self.out(posterior, generator_input)[0], kld
 
     @staticmethod
@@ -294,7 +309,7 @@ class VAE(nn.Module):
             out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
             out = out.view(1, -1)
 
-        z = out
+        z = out.view(1, 90, -1).transpose(1, 2)[:, max_seq_len]
         del out
 
         initial_state = None
@@ -306,7 +321,7 @@ class VAE(nn.Module):
 
         for i in range(max_seq_len):
 
-            logits, initial_state = self.out(z, input, initial_state=initial_state)
+            logits, initial_state = self.out(z[:, i].unsqueeze(1), input, initial_state=initial_state)
 
             logits = logits.view(-1, self.vocab_size)
             prediction = F.softmax(logits).data.cpu().numpy()[-1]
