@@ -24,7 +24,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=100, h_size=150)
+                    ParametersInference(input_size=400, latent_size=200, h_size=350)
                 ),
                 out=lambda x: x
             ),
@@ -33,7 +33,7 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=50, h_size=100)
+                    ParametersInference(input_size=400, latent_size=150, h_size=350)
                 ),
                 out=lambda x: x
             ),
@@ -42,91 +42,77 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=10, h_size=50)
+                    ParametersInference(input_size=400, latent_size=80, h_size=350)
                 )
             )
         ])
 
         self.iaf = nn.ModuleList([
-            IAF(latent_size=100, h_size=150),
-            IAF(latent_size=50, h_size=100),
-            IAF(latent_size=10, h_size=50),
+            IAF(latent_size=200, h_size=350),
+            IAF(latent_size=150, h_size=350),
+            IAF(latent_size=80, h_size=350),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(495, latent_size=100),
+                posterior=ParametersInference(1455, latent_size=200),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(495, 120)),
-                    nn.ELU(),
+                    nn.utils.weight_norm(nn.Linear(1455, 400)),
+                    nn.SELU(),
                     ResNet(1, 3),
-                    nn.utils.weight_norm(nn.Linear(120, 120)),
-                    nn.ELU()
+                    nn.utils.weight_norm(nn.Linear(400, 300)),
+                    nn.SELU()
                 ),
-                prior=ParametersInference(120, latent_size=100),
+                prior=ParametersInference(300, latent_size=200),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.ELU(),
+                    nn.SELU(),
                     ResNet(15, 3),
                     nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.ELU(),
-                    ResNet(20, 3),
-                    nn.utils.weight_norm(nn.ConvTranspose1d(20, 25, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
-                    ResNet(25, 3),
-                    nn.utils.weight_norm(nn.ConvTranspose1d(25, 27, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
-                    ResNet(27, 3),
-                    nn.utils.weight_norm(nn.ConvTranspose1d(27, 30, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
-                    ResNet(30, 3),
-                    nn.utils.weight_norm(nn.ConvTranspose1d(30, 90, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
-
-                    nn.utils.weight_norm(nn.Linear(525, 519))
+                    nn.SELU(),
                 )
             ),
 
             GenerativeBlock(
-                posterior=ParametersInference(195, latent_size=50),
+                posterior=ParametersInference(615, latent_size=150),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(195, 80)),
-                    nn.ELU(),
+                    nn.utils.weight_norm(nn.Linear(615, 300)),
+                    nn.SELU(),
                     ResNet(1, 3),
-                    nn.utils.weight_norm(nn.Linear(80, 80)),
-                    nn.ELU()
+                    nn.utils.weight_norm(nn.Linear(300, 300)),
+                    nn.SELU()
                 ),
-                prior=ParametersInference(80, latent_size=50),
+                prior=ParametersInference(300, latent_size=150),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
+                    nn.SELU(),
                     ResNet(12, 3, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.ELU(),
+                    nn.SELU(),
                 )
             ),
 
             GenerativeBlock(
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
+                    nn.SELU(),
                     ResNet(12, 3, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.ELU(),
+                    nn.SELU(),
+                    ResNet(15, 4, transpose=True)
                 )
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 90, hidden_size=140, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 1160, hidden_size=140, num_layers=3,
                             out=nn.Sequential(
-                                Highway(140, 2, nn.ELU()),
                                 weight_norm(nn.Linear(140, vocab_size))
                             ))
 
-        self.latent_size = [100, 50, 10]
+        self.latent_size = [200, 150, 80]
         self.vae_length = len(self.inference)
 
-    def forward(self, input, generator_input, lengths, generator_lengths):
+    def forward(self, input, generator_input, lengths, generator_lengths, lambda_par):
         """
         :param input: An long tensor with shape of [batch_size, seq_len]
         :param generator_input: An long tensor with shape of [batch_size, seq_len]
@@ -143,7 +129,6 @@ class VAE(nn.Module):
 
         '''
         Pickup embeddings for input sequences
-
         Residual input is used in order to 
         concat determenistic output from every layer with input sequence
         '''
@@ -176,7 +161,6 @@ class VAE(nn.Module):
 
         '''
         Generation on top-most layer
-
         After sampling latent variables from diagonal gaussian, 
         they are passed through IAF and then KLD is approximated with Monte Carlo method
         '''
@@ -195,7 +179,8 @@ class VAE(nn.Module):
         kld = self.kl_divergence(z=posterior,
                                  z_gauss=posterior_gauss,
                                  log_det=log_det,
-                                 posterior=[mu, std])
+                                 posterior=[mu, std],
+                                 lambda_par=lambda_par)
 
         posterior = posterior.view(batch_size, 10, -1)
         prior = prior.view(batch_size, 10, -1)
@@ -208,7 +193,6 @@ class VAE(nn.Module):
 
         '''
         Top-down inference
-
         Quite similar to generation on top-most layer, 
         but for now parameters of posterior ar combined with bottom-up information
         '''
@@ -236,7 +220,8 @@ class VAE(nn.Module):
                                      z_gauss=posterior_gauss,
                                      log_det=log_det,
                                      posterior=[posterior_mu, posterior_std],
-                                     prior=[prior_mu, prior_std])
+                                     prior=[prior_mu, prior_std],
+                                 lambda_par=lambda_par)
 
             posterior = self.generation[i].out(t.cat([posterior, posterior_determenistic], 1).view(batch_size, 10, -1))
             posterior = posterior.view(batch_size, -1)
@@ -256,7 +241,6 @@ class VAE(nn.Module):
                 prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1).view(batch_size, 10, -1))
                 prior = prior.view(batch_size, -1)
 
-        posterior = posterior.view(batch_size, 90, -1).transpose(1, 2)[:, :generator_lengths[0]]
         return self.out(posterior, generator_input)[0], kld
 
     @staticmethod
@@ -268,7 +252,7 @@ class VAE(nn.Module):
             kwargs['prior'] = [Variable(t.zeros(*kwargs['z'].size())),
                                Variable(t.ones(*kwargs['z'].size()))]
 
-        lambda_par = Variable(t.FloatTensor([5]))
+        lambda_par = Variable(t.FloatTensor([kwargs['lambda_par']]))
 
         if kwargs['z'].is_cuda:
             lambda_par = lambda_par.cuda()
@@ -309,7 +293,7 @@ class VAE(nn.Module):
             out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
             out = out.view(1, -1)
 
-        z = out.view(1, 90, -1).transpose(1, 2)[:, :max_seq_len]
+        z = out
         del out
 
         initial_state = None
@@ -321,7 +305,7 @@ class VAE(nn.Module):
 
         for i in range(max_seq_len):
 
-            logits, initial_state = self.out(z[:, i].unsqueeze(1), input, initial_state=initial_state)
+            logits, initial_state = self.out(z, input, initial_state=initial_state)
 
             logits = logits.view(-1, self.vocab_size)
             prediction = F.softmax(logits).data.cpu().numpy()[-1]
@@ -340,9 +324,9 @@ class VAE(nn.Module):
 
         return result
 
-    def loss(self, input, generator_input, lengths, generator_lengths, target, criterion, average=True):
+    def loss(self, input, generator_input, lengths, generator_lengths, target, criterion, lambda_par, average=True):
 
-        out, kld = self(input, generator_input, lengths, generator_lengths)
+        out, kld = self(input, generator_input, lengths, generator_lengths, lambda_par)
         out = pad_packed_sequence(out, batch_first=True)[0]
 
         [batch_size, _] = target.size()

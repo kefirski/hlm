@@ -9,21 +9,31 @@ class ParametersInference(nn.Module):
 
         self.mu = nn.Sequential(
             nn.utils.weight_norm(nn.Linear(input_size, input_size)),
+            nn.SELU(),
             ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, latent_size))
         )
 
         self.std = nn.Sequential(
             nn.utils.weight_norm(nn.Linear(input_size, input_size)),
+            nn.SELU(),
             ResNet(1, num_layers=4),
-            nn.utils.weight_norm(nn.Linear(input_size, latent_size))
+            nn.utils.weight_norm(nn.Linear(input_size, latent_size)),
+            nn.SELU(),
+            ResNet(1, num_layers=4),
+            nn.utils.weight_norm(nn.Linear(latent_size, latent_size))
+
         )
 
         self.h = nn.Sequential(
             nn.utils.weight_norm(nn.Linear(input_size, input_size)),
+            nn.SELU(),
             ResNet(1, num_layers=4),
             nn.utils.weight_norm(nn.Linear(input_size, h_size)),
-            nn.ELU()
+            nn.SELU(),
+            ResNet(1, num_layers=4),
+            nn.utils.weight_norm(nn.Linear(h_size, h_size)),
+            nn.SELU(),
         ) if h_size is not None else None
 
     def forward(self, input):

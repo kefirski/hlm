@@ -12,7 +12,7 @@ class ResNet(nn.Module):
         self.conv = nn.ModuleList([
             nn.Sequential(
                 self.conv3x3(size, transpose),
-                nn.ELU(),
+                nn.SELU(),
 
                 self.conv3x3(size, transpose),
             )

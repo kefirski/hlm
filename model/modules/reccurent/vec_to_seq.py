@@ -1,7 +1,7 @@
 import torch as t
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
-
+from model.modules.conv.resnet import ResNet
 
 class VecToSeq(nn.Module):
     def __init__(self, input_size, z_size, hidden_size, num_layers, out=None):
@@ -21,6 +21,8 @@ class VecToSeq(nn.Module):
 
         self.out = out
 
+        self.resnet = ResNet(140, num_layers=4)
+
     def forward(self, z, input, initial_state=None, pack=False):
         """
         :param input: An float tensor with shape of [batch_size, seq_len, input_size]
@@ -33,6 +35,9 @@ class VecToSeq(nn.Module):
         lengths = None
         if is_packed_seq:
             [input, lengths] = pad_packed_sequence(input, batch_first=True)
+
+        [_, seq_len, _] = input.size()
+        z = z.unsqueeze(1).repeat(1, seq_len, 1)
 
         input = t.cat([input, z], 2)
 
@@ -47,6 +52,8 @@ class VecToSeq(nn.Module):
         if is_packed_seq:
             result, lengths = pad_packed_sequence(result, batch_first=True)
 
+        result = result.transpose(1, 2)
+        result = self.resnet(result).transpose(1, 2)
         result = self.out(result)
-        return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True), fs
 
+        return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True), fs

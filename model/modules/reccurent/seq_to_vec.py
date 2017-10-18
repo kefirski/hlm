@@ -22,11 +22,9 @@ class SeqToVec(nn.Module):
     def forward(self, input):
         """
         :param input: An float tensor with shape of [batch_size, seq_len, input_size]
-        :return: An float tensor with shape of [batch_size, hidden_size * 2]
         """
 
         _, result = self.rnn(input)
 
         batch_size = result.size(1)
-        return result.view(-1, self.num_directions, batch_size, self.hidden_size)[-1]\
-            .transpose(0, 1).contiguous().view(batch_size, -1)
+        return result.transpose(0, 1).contiguous().view(batch_size, -1)
