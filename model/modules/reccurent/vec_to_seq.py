@@ -21,8 +21,6 @@ class VecToSeq(nn.Module):
 
         self.out = out
 
-        self.resnet = ResNet(140, num_layers=4)
-
     def forward(self, z, input, initial_state=None, pack=False):
         """
         :param input: An float tensor with shape of [batch_size, seq_len, input_size]
@@ -52,8 +50,6 @@ class VecToSeq(nn.Module):
         if is_packed_seq:
             result, lengths = pad_packed_sequence(result, batch_first=True)
 
-        result = result.transpose(1, 2)
-        result = self.resnet(result).transpose(1, 2)
         result = self.out(result)
 
         return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True), fs
