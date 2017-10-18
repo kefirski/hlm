@@ -309,7 +309,7 @@ class VAE(nn.Module):
             out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
             out = out.view(1, -1)
 
-        z = out.view(1, 90, -1).transpose(1, 2)[:, max_seq_len]
+        z = out.view(1, 90, -1).transpose(1, 2)[:, :max_seq_len]
         del out
 
         initial_state = None
