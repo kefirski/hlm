@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     likelihood_function = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
 
-    lambda_par = lambda x: 35 if x <= 20000 else 5
+    lambda_par = lambda x: 40 if x <= 5000 else 6
 
     for iteration in range(args.num_iterations):
 

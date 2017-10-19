@@ -31,7 +31,7 @@ class ResNet(nn.Module):
 
         for layer in self.conv:
             input = layer(input) + input
-            input = F.elu(input)
+            input = F.selu(input)
 
         return input.view(batch_size, -1) if should_view else input
 
