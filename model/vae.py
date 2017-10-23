@@ -205,11 +205,8 @@ class VAE(nn.Module):
             [top_down_mu, top_down_std, _] = self.generation[i].inference(posterior, 'posterior')
             [bottom_up_mu, bottom_up_std, h] = posterior_parameters[i]
 
-            top_down_std_inverse = t.pow(top_down_std, -2)
-            bottom_up_std_inverse = t.pow(bottom_up_std, -2)
-
-            posterior_std = 1 / (bottom_up_std_inverse + top_down_std_inverse)
-            posterior_mu = (top_down_mu * top_down_std_inverse + bottom_up_mu * bottom_up_std_inverse) * posterior_std
+            posterior_mu = top_down_mu + bottom_up_mu
+            posterior_std = top_down_std + bottom_up_std
 
             eps = Variable(t.randn(*posterior_mu.size()))
             if cuda:
