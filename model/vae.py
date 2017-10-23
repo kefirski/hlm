@@ -21,30 +21,35 @@ class VAE(nn.Module):
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size, hidden_size=200, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=200),
-                    ParametersInference(input_size=200, latent_size=200, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
+                    ParametersInference(input_size=400, latent_size=200, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=200, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=200),
-                    ParametersInference(input_size=200, latent_size=150, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
+                    ParametersInference(input_size=400, latent_size=150, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=200, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=200),
-                    ParametersInference(input_size=200, latent_size=80, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
+                    ParametersInference(input_size=400, latent_size=80, h_size=350)
                 )
             )
+        ])
+
+        self.posterior_combination = nn.ModuleList([
+            PosteriorCombination(200),
+            PosteriorCombination(150)
         ])
 
         self.iaf = nn.ModuleList([
@@ -205,8 +210,9 @@ class VAE(nn.Module):
             [top_down_mu, top_down_std, _] = self.generation[i].inference(posterior, 'posterior')
             [bottom_up_mu, bottom_up_std, h] = posterior_parameters[i]
 
-            posterior_mu = top_down_mu + bottom_up_mu
-            posterior_std = top_down_std + bottom_up_std
+            posterior_mu, posterior_std = self.posterior_combination[i]([
+                top_down_mu, bottom_up_mu, top_down_std, bottom_up_std
+            ])
 
             eps = Variable(t.randn(*posterior_mu.size()))
             if cuda:
