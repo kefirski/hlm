@@ -21,28 +21,28 @@ class VAE(nn.Module):
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size, hidden_size=200, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=200, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=200),
+                    ParametersInference(input_size=200, latent_size=200, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=200, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=150, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=200),
+                    ParametersInference(input_size=200, latent_size=150, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=200, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=80, h_size=350)
+                    SeqToVec(input_size=200, hidden_size=200),
+                    ParametersInference(input_size=200, latent_size=80, h_size=350)
                 )
             )
         ])

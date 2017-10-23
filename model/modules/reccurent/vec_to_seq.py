@@ -1,7 +1,7 @@
 import torch as t
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
-from model.modules.conv.resnet import ResNet
+
 
 class VecToSeq(nn.Module):
     def __init__(self, input_size, z_size, hidden_size, num_layers, out=None):
