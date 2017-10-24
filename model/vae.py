@@ -24,51 +24,51 @@ class VAE(nn.Module):
                 input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=200, h_size=350)
-                ),
-                out=lambda x: x
-            ),
-
-            InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
-                posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=150, h_size=350)
-                ),
-                out=lambda x: x
-            ),
-
-            InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
-                posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
                     ParametersInference(input_size=400, latent_size=80, h_size=350)
+                ),
+                out=lambda x: x
+            ),
+
+            InferenceBlock(
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=200, hidden_size=50, num_layers=2),
+                    ParametersInference(input_size=200, latent_size=60, h_size=150)
+                ),
+                out=lambda x: x
+            ),
+
+            InferenceBlock(
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                posterior=nn.Sequential(
+                    SeqToVec(input_size=200, hidden_size=50, num_layers=2),
+                    ParametersInference(input_size=200, latent_size=20, h_size=100)
                 )
             )
         ])
 
         self.posterior_combination = nn.ModuleList([
-            PosteriorCombination(200),
-            PosteriorCombination(150)
+            PosteriorCombination(80),
+            PosteriorCombination(60)
         ])
 
         self.iaf = nn.ModuleList([
-            IAF(latent_size=200, h_size=350),
-            IAF(latent_size=150, h_size=350),
             IAF(latent_size=80, h_size=350),
+            IAF(latent_size=60, h_size=150),
+            IAF(latent_size=20, h_size=100),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(1455, latent_size=200),
+                posterior=ParametersInference(735, latent_size=80),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(1455, 400)),
+                    nn.utils.weight_norm(nn.Linear(735, 120)),
                     nn.SELU(),
                     ResNet(1, 3),
-                    nn.utils.weight_norm(nn.Linear(400, 300)),
+                    nn.utils.weight_norm(nn.Linear(120, 100)),
                     nn.SELU()
                 ),
-                prior=ParametersInference(300, latent_size=200),
+                prior=ParametersInference(100, latent_size=80),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
                     nn.SELU(),
@@ -79,15 +79,15 @@ class VAE(nn.Module):
             ),
 
             GenerativeBlock(
-                posterior=ParametersInference(615, latent_size=150),
+                posterior=ParametersInference(255, latent_size=60),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(615, 300)),
+                    nn.utils.weight_norm(nn.Linear(255, 200)),
                     nn.SELU(),
                     ResNet(1, 3),
-                    nn.utils.weight_norm(nn.Linear(300, 300)),
+                    nn.utils.weight_norm(nn.Linear(200, 150)),
                     nn.SELU()
                 ),
-                prior=ParametersInference(300, latent_size=150),
+                prior=ParametersInference(150, latent_size=60),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
                     nn.SELU(),
@@ -109,13 +109,13 @@ class VAE(nn.Module):
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 1160, hidden_size=140, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 520, hidden_size=140, num_layers=3,
                             out=nn.Sequential(
                                 Highway(140, 3, nn.SELU()),
                                 weight_norm(nn.Linear(140, vocab_size))
                             ))
 
-        self.latent_size = [200, 150, 80]
+        self.latent_size = [80, 60, 20]
         self.vae_length = len(self.inference)
 
     def forward(self, input, generator_input, lengths, generator_lengths, lambda_par):
