@@ -29,7 +29,7 @@ class PosteriorCombination(nn.Module):
     def forward(self, posterior):
         [mu_1, mu_2, std_1, std_2] = posterior
 
-        input = t.stack(posterior, 1)
+        input = t.cat(posterior, 1)
 
         mu_weight = self.mu_weight(input)
         std_weight = self.std_weight(input)
