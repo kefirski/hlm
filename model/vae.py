@@ -16,33 +16,33 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
 
         self.vocab_size = vocab_size
-        self.embedding_size = 160
+        self.embedding_size = 80
         self.embedding = Embedding(self.vocab_size, embedding_size=self.embedding_size)
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size, hidden_size=80, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=100, num_layers=2),
-                    ParametersInference(input_size=400, latent_size=80, h_size=350)
+                    SeqToVec(input_size=160, hidden_size=80, num_layers=2),
+                    ParametersInference(input_size=320, latent_size=80, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 160, hidden_size=80, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=50, num_layers=2),
+                    SeqToVec(input_size=160, hidden_size=50, num_layers=2),
                     ParametersInference(input_size=200, latent_size=60, h_size=150)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=100, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 160, hidden_size=40, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=200, hidden_size=50, num_layers=2),
-                    ParametersInference(input_size=200, latent_size=20, h_size=100)
+                    SeqToVec(input_size=80, hidden_size=30, num_layers=2),
+                    ParametersInference(input_size=120, latent_size=20, h_size=100)
                 )
             )
         ])

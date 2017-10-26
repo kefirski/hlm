@@ -12,17 +12,11 @@ class PosteriorCombination(nn.Module):
 
         self.mu_weight = nn.Sequential(
             weight_norm(nn.Linear(4 * size, size)),
-            nn.SELU(),
-
-            weight_norm(nn.Linear(size, size)),
             nn.Sigmoid()
         )
 
         self.std_weight = nn.Sequential(
             weight_norm(nn.Linear(4 * size, size)),
-            nn.SELU(),
-
-            weight_norm(nn.Linear(size, size)),
             nn.Sigmoid()
         )
 

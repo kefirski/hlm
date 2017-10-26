@@ -34,7 +34,6 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(args.tensorboard)
 
-    # dataloader = TwitterLoader('utils/twitter_dataloader/twitter_data/')
     dataloader = PTBLoader('utils/ptb_dataloader/data/')
 
     vae = VAE(vocab_size=dataloader.vocab_size)

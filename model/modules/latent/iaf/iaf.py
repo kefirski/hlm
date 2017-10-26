@@ -16,7 +16,7 @@ class IAF(nn.Module):
             nn.utils.weight_norm(nn.Linear(self.h_size, self.h_size * 2)),
             ResNet(1, 4),
             nn.utils.weight_norm(nn.Linear(self.h_size * 2, self.h_size)),
-            nn.ELU()
+            ResNet(1, 4)
         )
 
         self.m = nn.Sequential(
