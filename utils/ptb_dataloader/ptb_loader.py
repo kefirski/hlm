@@ -154,7 +154,6 @@ class PTBLoader():
         decoder_input = [self.add_token(line, go=True) for line in lines]
         decoder_target = [self.add_token(line, stop=True) for line in lines]
 
-        print(decoder_input)
         decoder_input = [[idx * np.random.binomial(1, 1 - drop_prob, 1)[0] for idx in line] for line in decoder_input]
 
         encoder_input = self.padd_sequences(encoder_input)
