@@ -6,7 +6,8 @@ from tensorboardX import SummaryWriter
 from torch.optim import Adam
 
 from model.vae import VAE
-from utils.ptb_dataloader.ptb_loader import PTBLoader
+# from utils.ptb_dataloader.ptb_loader import PTBLoader
+from utils.word_ptb_dataloader.ptb_loader import PTBLoader
 
 
 def kl_coef(x):
@@ -24,8 +25,8 @@ if __name__ == "__main__":
                         help='use cuda (default: False)')
     parser.add_argument('--learning-rate', type=float, default=0.0005, metavar='LR',
                         help='learning rate (default: 0.0005)')
-    parser.add_argument('--dropout', type=float, default=0.25, metavar='LR',
-                        help='dropout rate (default: 0.25)')
+    parser.add_argument('--dropout', type=float, default=0.0, metavar='LR',
+                        help='dropout rate (default: 0.0)')
     parser.add_argument('--save', type=str, default='trained_model', metavar='TS',
                         help='path where save trained model to (default: "trained_model")')
     parser.add_argument('--tensorboard', type=str, default='default_tb', metavar='TB',
@@ -34,17 +35,17 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(args.tensorboard)
 
-    dataloader = PTBLoader('utils/ptb_dataloader/data/')
+    dataloader = PTBLoader('utils/word_ptb_dataloader/data/', 'utils/word_ptb_dataloader/data/wiki.en.bin')
 
-    vae = VAE(vocab_size=dataloader.vocab_size)
+    vae = VAE(vocab_size=dataloader.vocab_size, embeddings_path=dataloader.embed_file)
     if args.use_cuda:
         vae = vae.cuda()
 
-    optimizer = Adam(vae.parameters(), args.learning_rate, eps=1e-6)
+    optimizer = Adam(vae.learnable_parameters(), args.learning_rate, eps=1e-6)
 
     likelihood_function = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
 
-    lambda_par = lambda x: 6.5
+    lambda_par = lambda x: 7
 
     for iteration in range(args.num_iterations):
 

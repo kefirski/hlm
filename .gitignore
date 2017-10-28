@@ -15,6 +15,7 @@ dist/
 downloads/
 eggs/
 .idea/
+wiki.en.bin
 preprocessings/
 .eggs/
 experimentation.py

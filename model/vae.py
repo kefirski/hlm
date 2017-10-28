@@ -12,25 +12,25 @@ from model.modules import *
 
 
 class VAE(nn.Module):
-    def __init__(self, vocab_size):
+    def __init__(self, vocab_size, embeddings_path):
         super(VAE, self).__init__()
 
         self.vocab_size = vocab_size
-        self.embedding_size = 80
-        self.embedding = Embedding(self.vocab_size, embedding_size=self.embedding_size)
+        self.embedding_size = 300
+        self.embedding = Embedding(embeddings_path, self.vocab_size, embedding_size=self.embedding_size)
 
         self.inference = nn.ModuleList([
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size, hidden_size=80, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
-                    SeqToVec(input_size=160, hidden_size=80, num_layers=2),
+                    SeqToVec(input_size=200, hidden_size=80, num_layers=2),
                     ParametersInference(input_size=320, latent_size=80, h_size=350)
                 ),
                 out=lambda x: x
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 160, hidden_size=80, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 200, hidden_size=80, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=160, hidden_size=50, num_layers=2),
                     ParametersInference(input_size=200, latent_size=60, h_size=150)
@@ -343,3 +343,8 @@ class VAE(nn.Module):
         likelihood = criterion(out, target) / (batch_size if average else 1)
 
         return likelihood, kld
+
+    def learnable_parameters(self):
+        for par in self.parameters():
+            if par.requires_grad:
+                yield par
