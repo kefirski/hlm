@@ -6,8 +6,7 @@ from tensorboardX import SummaryWriter
 from torch.optim import Adam
 
 from model.vae import VAE
-# from utils.ptb_dataloader.ptb_loader import PTBLoader
-from utils.word_ptb_dataloader.ptb_loader import PTBLoader
+from utils.ptb_dataloader.ptb_loader import PTBLoader
 
 
 def kl_coef(x):
@@ -35,9 +34,9 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(args.tensorboard)
 
-    dataloader = PTBLoader('utils/word_ptb_dataloader/data/', 'utils/word_ptb_dataloader/data/wiki.en.bin')
+    dataloader = PTBLoader('utils/ptb_dataloader/data/')
 
-    vae = VAE(vocab_size=dataloader.vocab_size, embeddings_path=dataloader.embed_file)
+    vae = VAE(vocab_size=dataloader.vocab_size)
     if args.use_cuda:
         vae = vae.cuda()
 
@@ -45,7 +44,7 @@ if __name__ == "__main__":
 
     likelihood_function = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
 
-    lambda_par = lambda x: 7
+    lambda_par = lambda x: 18 if x < 10000 else 12
 
     for iteration in range(args.num_iterations):
 

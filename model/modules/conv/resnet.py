@@ -9,7 +9,7 @@ class ResNet(nn.Module):
         self.num_layers = num_layers
         self.size = size
 
-        batchNorm = nn.BatchNorm1d if dim =='1d' else nn.BatchNorm2d
+        batchNorm = nn.BatchNorm1d if dim == '1d' else nn.BatchNorm2d
 
         self.conv = nn.ModuleList([
             nn.Sequential(
@@ -18,6 +18,7 @@ class ResNet(nn.Module):
                 nn.SELU(),
 
                 self.conv3x3(size, transpose),
+                batchNorm(size)
             )
 
             for _ in range(num_layers)
@@ -34,7 +35,7 @@ class ResNet(nn.Module):
 
         for layer in self.conv:
             input = layer(input) + input
-            input = F.selu(input)
+            input = F.elu(input)
 
         return input.view(batch_size, -1) if should_view else input
 

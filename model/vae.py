@@ -12,19 +12,19 @@ from model.modules import *
 
 
 class VAE(nn.Module):
-    def __init__(self, vocab_size, embeddings_path):
+    def __init__(self, vocab_size):
         super(VAE, self).__init__()
 
         self.vocab_size = vocab_size
-        self.embedding_size = 300
-        self.embedding = Embedding(embeddings_path, self.vocab_size, embedding_size=self.embedding_size)
+        self.embedding_size = 60
+        self.embedding = Embedding(self.vocab_size, embedding_size=self.embedding_size)
 
         self.inference = nn.ModuleList([
             InferenceBlock(
                 input=SeqToSeq(input_size=self.embedding_size, hidden_size=100, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=200, hidden_size=80, num_layers=2),
-                    ParametersInference(input_size=320, latent_size=80, h_size=350)
+                    ParametersInference(input_size=320, latent_size=80, h_size=200)
                 ),
                 out=lambda x: x
             ),
@@ -53,7 +53,7 @@ class VAE(nn.Module):
         ])
 
         self.iaf = nn.ModuleList([
-            IAF(latent_size=80, h_size=350),
+            IAF(latent_size=80, h_size=200),
             IAF(latent_size=60, h_size=150),
             IAF(latent_size=20, h_size=100),
         ])
@@ -63,20 +63,21 @@ class VAE(nn.Module):
                 posterior=ParametersInference(735, latent_size=80),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(735, 120)),
-                    nn.SELU(),
+                    nn.ELU(),
                     ResNet(1, 3, dim=1),
                     nn.utils.weight_norm(nn.Linear(120, 100)),
-                    nn.SELU()
+                    nn.ELU()
                 ),
                 prior=ParametersInference(100, latent_size=80),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.BatchNorm2d(15),
-                    nn.SELU(),
-                    ResNet(15, 3, dim=2),
+                    nn.BatchNorm1d(15),
+                    nn.ELU(),
+                    ResNet(15, 3, dim=1),
                     nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.BatchNorm2d(20),
-                    nn.SELU(),
+                    nn.BatchNorm1d(20),
+                    nn.ELU(),
+                    ResNet(20, 3, dim=1)
                 )
             ),
 
@@ -84,41 +85,41 @@ class VAE(nn.Module):
                 posterior=ParametersInference(255, latent_size=60),
                 input=nn.Sequential(
                     nn.utils.weight_norm(nn.Linear(255, 200)),
-                    nn.SELU(),
+                    nn.ELU(),
                     ResNet(1, 3, dim=1),
                     nn.utils.weight_norm(nn.Linear(200, 150)),
-                    nn.SELU()
+                    nn.ELU()
                 ),
                 prior=ParametersInference(150, latent_size=60),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.BatchNorm2d(12),
-                    nn.SELU(),
-                    ResNet(12, 3, dim=2, transpose=True),
+                    nn.BatchNorm1d(12),
+                    nn.ELU(),
+                    ResNet(12, 3, dim=1, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=2)),
-                    nn.BatchNorm2d(15),
-                    nn.SELU(),
+                    nn.BatchNorm1d(15),
+                    nn.ELU(),
                 )
             ),
 
             GenerativeBlock(
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.BatchNorm2d(12),
-                    nn.SELU(),
-                    ResNet(12, 3, dim=2, transpose=True),
+                    nn.BatchNorm1d(12),
+                    nn.ELU(),
+                    ResNet(12, 3, dim=1, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=2)),
-                    nn.BatchNorm2d(15),
-                    nn.SELU(),
-                    ResNet(15, 4, dim=2, transpose=True)
+                    nn.BatchNorm1d(15),
+                    nn.ELU(),
+                    ResNet(15, 4, dim=1, transpose=True)
                 )
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 520, hidden_size=600, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 520, hidden_size=300, num_layers=3,
                             out=nn.Sequential(
-                                Highway(600, 2, nn.SELU()),
-                                weight_norm(nn.Linear(600, vocab_size))
+                                Highway(300, 2, nn.ELU()),
+                                weight_norm(nn.Linear(300, vocab_size))
                             ))
 
         self.latent_size = [80, 60, 20]
