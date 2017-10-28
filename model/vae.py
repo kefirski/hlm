@@ -317,12 +317,12 @@ class VAE(nn.Module):
             logits = logits.view(-1, self.vocab_size)
             prediction = F.softmax(logits).data.cpu().numpy()[-1]
 
-            idx, char = batch_loader.sample_char(prediction)
+            idx, word = batch_loader.sample_char(prediction)
 
-            if char == batch_loader.stop_token:
+            if word == batch_loader.stop_token:
                 break
 
-            result += char
+            result += ' ' + word
 
             input = Variable(t.from_numpy(np.array([[idx]])))
             if cuda:
