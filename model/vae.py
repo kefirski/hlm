@@ -72,13 +72,13 @@ class VAE(nn.Module):
                 prior=ParametersInference(180, latent_size=140),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm1d(15),
+                    nn.BatchNorm2d(15),
                     nn.ELU(),
-                    ResNet(15, 3, dim=1),
+                    ResNet(15, 3, dim=2),
                     nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm1d(20),
+                    nn.BatchNorm2d(20),
                     nn.ELU(),
-                    ResNet(20, 3, dim=1)
+                    ResNet(20, 3, dim=2)
                 )
             ),
 
