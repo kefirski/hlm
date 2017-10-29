@@ -6,7 +6,7 @@ class SeqToSeq(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, bidirectional=True, out=None):
         super(SeqToSeq, self).__init__()
 
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,

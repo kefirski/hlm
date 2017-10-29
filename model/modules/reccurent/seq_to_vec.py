@@ -5,7 +5,7 @@ class SeqToVec(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, bidirectional=True):
         super(SeqToVec, self).__init__()
 
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,
@@ -20,7 +20,6 @@ class SeqToVec(nn.Module):
         """
 
         _, result = self.rnn(input)
-        result = result[0]
 
         batch_size = result.size(1)
         return result.transpose(0, 1).contiguous().view(batch_size, -1)

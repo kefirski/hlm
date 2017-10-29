@@ -12,7 +12,7 @@ class VecToSeq(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=self.input_size + self.z_size,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
