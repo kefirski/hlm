@@ -51,12 +51,12 @@ class IAF(nn.Module):
 
         log_det = 0
         for i in range(self.depth):
-            z = t.cat([z, h], 1)
+            input = t.cat([z, h], 1)
 
-            m = self.m[i](z)
-            s = self.s[i](z)
+            m = self.m[i](input)
+            s = self.s[i](input)
 
-            z = s.exp() * s + m
+            z = s.exp() * z + m
 
             log_det += s.sum(1)
 
