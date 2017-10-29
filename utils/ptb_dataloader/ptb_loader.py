@@ -27,9 +27,9 @@ class PTBLoader():
         go_token (stop_token) uses to mark start (end) of the sequence
         pad_token uses to fill tensor to fixed-size length
         '''
-        self.go_token = '>'
+        self.go_token = '~'
         self.pad_token = '_'
-        self.stop_token = '<'
+        self.stop_token = '|'
 
         self.data_files = [data_path + path for path in ['ptb.test.txt', 'ptb.train.txt', 'ptb.valid.txt']]
         self.target_idx = {'test': 0, 'train': 1, 'valid': 2}
