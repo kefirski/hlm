@@ -72,11 +72,9 @@ class VAE(nn.Module):
                 prior=ParametersInference(180, latent_size=140),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 15, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm2d(15),
                     nn.ELU(),
                     ResNet(15, 3, dim=2),
                     nn.utils.weight_norm(nn.ConvTranspose1d(15, 20, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm2d(20),
                     nn.ELU(),
                     ResNet(20, 3, dim=2)
                 )
@@ -94,11 +92,9 @@ class VAE(nn.Module):
                 prior=ParametersInference(150, latent_size=80),
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm2d(12),
                     nn.ELU(),
                     ResNet(12, 3, dim=2, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=1, padding=0, dilation=1)),
-                    nn.BatchNorm2d(15),
                     nn.ELU(),
                 )
             ),
@@ -106,11 +102,9 @@ class VAE(nn.Module):
             GenerativeBlock(
                 out=nn.Sequential(
                     nn.utils.weight_norm(nn.ConvTranspose1d(10, 12, kernel_size=3, stride=2, padding=0, dilation=1)),
-                    nn.BatchNorm2d(12),
                     nn.ELU(),
                     ResNet(12, 3, dim=2, transpose=True),
                     nn.utils.weight_norm(nn.ConvTranspose1d(12, 15, kernel_size=3, stride=2, padding=0, dilation=1)),
-                    nn.BatchNorm2d(15),
                     nn.ELU(),
                     ResNet(15, 4, dim=2, transpose=True)
                 )
@@ -319,7 +313,7 @@ class VAE(nn.Module):
             prior = z[i] * std + mu
             out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
             out = out.view(1, -1)
-            
+
             out = t.cat([out, residual], 1)
             residual = out
 

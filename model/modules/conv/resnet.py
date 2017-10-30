@@ -14,11 +14,9 @@ class ResNet(nn.Module):
         self.conv = nn.ModuleList([
             nn.Sequential(
                 self.conv3x3(size, transpose),
-                batchNorm(size),
                 nn.SELU(),
 
                 self.conv3x3(size, transpose),
-                batchNorm(size)
             )
 
             for _ in range(num_layers)
