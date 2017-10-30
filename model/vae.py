@@ -40,7 +40,7 @@ class VAE(nn.Module):
             ),
 
             InferenceBlock(
-                input=SeqToSeq(input_size=self.embedding_size + 160, hidden_size=40, num_layers=2),
+                input=SeqToSeq(input_size=self.embedding_size + 360, hidden_size=40, num_layers=2),
                 posterior=nn.Sequential(
                     SeqToVec(input_size=80, hidden_size=60, num_layers=2),
                     ParametersInference(input_size=240, latent_size=60, h_size=200)
@@ -55,15 +55,15 @@ class VAE(nn.Module):
 
         self.iaf = nn.ModuleList([
             IAF(latent_size=140, h_size=300, depth=4),
-            IAF(latent_size=80, h_size=250, depth=2),
-            IAF(latent_size=60, h_size=200, depth=2),
+            IAF(latent_size=80, h_size=250, depth=3),
+            IAF(latent_size=60, h_size=200, depth=3),
         ])
 
         self.generation = nn.ModuleList([
             GenerativeBlock(
-                posterior=ParametersInference(405, latent_size=140),
+                posterior=ParametersInference(810, latent_size=140),
                 input=nn.Sequential(
-                    nn.utils.weight_norm(nn.Linear(405, 200)),
+                    nn.utils.weight_norm(nn.Linear(810, 200)),
                     nn.ELU(),
                     ResNet(1, 3, dim=2),
                     nn.utils.weight_norm(nn.Linear(200, 180)),
@@ -117,7 +117,7 @@ class VAE(nn.Module):
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 720, hidden_size=700, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 1530, hidden_size=700, num_layers=3,
                             out=nn.Sequential(
                                 Highway(700, 2, nn.ELU()),
                                 weight_norm(nn.Linear(700, vocab_size))
@@ -166,6 +166,7 @@ class VAE(nn.Module):
                 [out, _] = pad_packed_sequence(out, batch_first=True)
 
                 input = t.cat([residual, out], 2)
+                residual = input
                 input = pack_padded_sequence(input, lengths, batch_first=True)
 
             else:
@@ -205,6 +206,9 @@ class VAE(nn.Module):
         posterior = posterior.view(batch_size, -1)
         prior = prior.view(batch_size, -1)
 
+        pos_residual = posterior
+        pr_residual = prior
+
         '''
         Top-down inference
         Quite similar to generation on top-most layer, 
@@ -241,6 +245,9 @@ class VAE(nn.Module):
             posterior = self.generation[i].out(t.cat([posterior, posterior_determenistic], 1).view(batch_size, 10, -1))
             posterior = posterior.view(batch_size, -1)
 
+            posterior = t.cat([posterior, pos_residual], 1)
+            pos_residual = posterior
+
             if i != 0:
                 '''
                 Since there no level below bottom-most, 
@@ -255,6 +262,9 @@ class VAE(nn.Module):
 
                 prior = self.generation[i].out(t.cat([prior, prior_determenistic], 1).view(batch_size, 10, -1))
                 prior = prior.view(batch_size, -1)
+
+                prior = t.cat([prior, pr_residual], 1)
+                pr_residual = prior
 
         return self.out(posterior, generator_input)[0], kld
 
@@ -300,6 +310,8 @@ class VAE(nn.Module):
         out = self.generation[-1].out(top_variable)
         out = out.view(1, -1)
 
+        residual = out
+
         for i in range(self.vae_length - 2, -1, -1):
             determenistic = self.generation[i].input(out)
 
@@ -307,6 +319,9 @@ class VAE(nn.Module):
             prior = z[i] * std + mu
             out = self.generation[i].out(t.cat([prior, determenistic], 1).view(1, 10, -1))
             out = out.view(1, -1)
+            
+            out = t.cat([out, residual], 1)
+            residual = out
 
         z = out
         del out
