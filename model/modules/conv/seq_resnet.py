@@ -11,10 +11,10 @@ class SeqResNet(nn.Module):
 
         self.conv = nn.ModuleList([
             nn.Sequential(
-                self.conv3x3(size, transpose),
+                self.conv3x3(1, transpose),
                 nn.SELU(),
 
-                self.conv3x3(size, transpose),
+                self.conv3x3(1, transpose),
             )
 
             for _ in range(num_layers)
@@ -29,7 +29,7 @@ class SeqResNet(nn.Module):
             input = layer(input) + input
             input = F.elu(input)
 
-        return input.view(batch_size, 1, self.size)
+        return input.view(batch_size, -1, self.size)
 
     @staticmethod
     def conv3x3(size, transpose):
