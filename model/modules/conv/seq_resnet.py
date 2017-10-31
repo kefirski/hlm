@@ -2,9 +2,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class ResNet(nn.Module):
+class SeqResNet(nn.Module):
     def __init__(self, size, num_layers, dim, transpose=False):
-        super(ResNet, self).__init__()
+        super(SeqResNet, self).__init__()
 
         self.num_layers = num_layers
         self.size = size
@@ -23,17 +23,13 @@ class ResNet(nn.Module):
     def forward(self, input):
 
         batch_size = input.size(0)
-
-        should_view = False
-        if len(input.size()) == 2:
-            input = input.view(batch_size, self.size, -1)
-            should_view = True
+        input = input.view(-1, 1, self.size)
 
         for layer in self.conv:
             input = layer(input) + input
             input = F.elu(input)
 
-        return input.view(batch_size, -1) if should_view else input
+        return input.view(batch_size, 1, self.size)
 
     @staticmethod
     def conv3x3(size, transpose):
