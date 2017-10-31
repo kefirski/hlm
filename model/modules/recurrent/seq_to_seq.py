@@ -1,5 +1,6 @@
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
+import torch.nn.functional as F
 
 
 class SeqToSeq(nn.Module):
@@ -31,6 +32,8 @@ class SeqToSeq(nn.Module):
         is_packed_sequence = isinstance(result, PackedSequence)
         if is_packed_sequence:
             result, lengths = pad_packed_sequence(result, batch_first=True)
+
+        result = F.dropout(result, p=0.25, training=self.training)
 
         result = self.out(result)
         return result if not is_packed_sequence else pack_padded_sequence(result, lengths, batch_first=True)

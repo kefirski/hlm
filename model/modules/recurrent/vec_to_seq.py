@@ -1,6 +1,7 @@
 import torch as t
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, PackedSequence
+import torch.nn.functional as F
 
 
 class VecToSeq(nn.Module):
@@ -38,6 +39,7 @@ class VecToSeq(nn.Module):
         z = z.unsqueeze(1).repeat(1, seq_len, 1)
 
         input = t.cat([input, z], 2)
+        input = F.dropout(input, p=0.25, training=self.training)
 
         if is_packed_seq:
             input = pack_padded_sequence(input, lengths, batch_first=True)
@@ -50,6 +52,7 @@ class VecToSeq(nn.Module):
         if is_packed_seq:
             result, lengths = pad_packed_sequence(result, batch_first=True)
 
+        result = F.dropout(result, p=0.25, training=self.training)
         result = self.out(result)
 
         return result if not (is_packed_seq or pack) else pack_padded_sequence(result, lengths, batch_first=True), fs
