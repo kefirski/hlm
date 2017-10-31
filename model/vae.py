@@ -16,7 +16,7 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
 
         self.vocab_size = vocab_size
-        self.embedding_size = 100
+        self.embedding_size = 120
         self.embedding = Embedding(self.vocab_size, embedding_size=self.embedding_size)
 
         self.inference = nn.ModuleList([
@@ -113,8 +113,7 @@ class VAE(nn.Module):
 
         self.out = VecToSeq(self.embedding_size, 1530, hidden_size=350, num_layers=3,
                             out=nn.Sequential(
-                                Highway(350, 2, nn.ELU()),
-                                SeqResNet(350, 3, dim=2),
+                                Highway(350, 3, nn.ELU()),
                                 weight_norm(nn.Linear(350, vocab_size))
                             ))
 
