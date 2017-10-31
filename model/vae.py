@@ -111,9 +111,12 @@ class VAE(nn.Module):
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 1530, hidden_size=700, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 1530, hidden_size=1100, num_layers=3,
                             out=nn.Sequential(
-                                Highway(700, 3, nn.ELU()),
+                                weight_norm(nn.Linear(1100, 900)),
+                                nn.Dropout(p=0.3),
+                                weight_norm(nn.Linear(900, 700)),
+                                nn.Dropout(p=0.3),
                                 weight_norm(nn.Linear(700, vocab_size))
                             ))
 
