@@ -111,10 +111,10 @@ class VAE(nn.Module):
             )
         ])
 
-        self.out = VecToSeq(self.embedding_size, 1530, hidden_size=350, num_layers=3,
+        self.out = VecToSeq(self.embedding_size, 1530, hidden_size=700, num_layers=3,
                             out=nn.Sequential(
-                                Highway(350, 3, nn.ELU()),
-                                weight_norm(nn.Linear(350, vocab_size))
+                                Highway(700, 3, nn.ELU()),
+                                weight_norm(nn.Linear(700, vocab_size))
                             ))
 
         self.latent_size = [140, 80, 60]
@@ -348,9 +348,10 @@ class VAE(nn.Module):
 
         return result
 
-    def loss(self, input, generator_input, lengths, generator_lengths, target, criterion, lambda_par, average=True):
+    def loss(self, input, gen_input, lengths, gen_lengths, target, criterion, kl_par, eval=False, average=True):
 
-        out, kld = self(input, generator_input, lengths, generator_lengths, lambda_par)
+        model = self if not eval else self.eval()
+        out, kld = model(input, gen_input, lengths, gen_lengths, kl_par)
         out = pad_packed_sequence(out, batch_first=True)[0]
 
         [batch_size, _] = target.size()

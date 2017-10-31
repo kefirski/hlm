@@ -42,9 +42,9 @@ if __name__ == "__main__":
 
     optimizer = Adam(vae.learnable_parameters(), args.learning_rate, eps=1e-6)
 
-    likelihood_function = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
+    criterion = nn.CrossEntropyLoss(size_average=False, ignore_index=0)
 
-    lambda_par = lambda x: 18 if x < 10000 else 12
+    kl_par = lambda x: 18 if x < 10000 else 12
 
     for iteration in range(args.num_iterations):
 
@@ -53,8 +53,8 @@ if __name__ == "__main__":
 
         optimizer.zero_grad()
 
-        likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function,
-                                   lambda_par(iteration))
+        likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, criterion,
+                                   kl_par(iteration))
         loss = likelihood + kld * kl_coef(iteration)
 
         loss.backward()
@@ -64,8 +64,8 @@ if __name__ == "__main__":
             (input, lengths), (gen_input, gen_lengths), target = \
                 dataloader.torch_batch(args.batch_size, 'valid', args.use_cuda, 0., volatile=True)
 
-            likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, likelihood_function,
-                                       lambda_par(iteration), False)
+            likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, criterion,
+                                       kl_par(iteration), eval=True, average=False)
 
             likelihood = likelihood.cpu().data.numpy()[0]
             kld = kld.cpu().data.numpy()[0]

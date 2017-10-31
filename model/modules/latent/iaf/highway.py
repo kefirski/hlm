@@ -11,6 +11,7 @@ class Highway(nn.Module):
         self.nonlinear = nn.ModuleList([nn.utils.weight_norm(nn.Linear(size, size)) for _ in range(num_layers)])
         self.linear = nn.ModuleList([nn.utils.weight_norm(nn.Linear(size, size)) for _ in range(num_layers)])
         self.gate = nn.ModuleList([nn.utils.weight_norm(nn.Linear(size, size)) for _ in range(num_layers)])
+        self.dropout = nn.ModuleList([nn.Dropout(p=0.35) for _ in range(num_layers)])
 
         self.f = f
 
@@ -23,11 +24,13 @@ class Highway(nn.Module):
             and ⨀ is element-wise multiplication
             """
 
-        for layer in range(self.num_layers):
-            gate = F.sigmoid(self.gate[layer](x))
+        for i in range(self.num_layers):
+            x = self.dropout[i](x)
 
-            nonlinear = self.f(self.nonlinear[layer](x))
-            linear = self.linear[layer](x)
+            gate = F.sigmoid(self.gate[i](x))
+
+            nonlinear = self.f(self.nonlinear[i](x))
+            linear = self.linear[i](x)
 
             x = gate * nonlinear + (1 - gate) * linear
 
