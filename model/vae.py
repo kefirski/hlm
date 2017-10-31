@@ -351,9 +351,9 @@ class VAE(nn.Module):
     def loss(self, input, gen_input, lengths, gen_lengths, target, criterion, kl_par, eval=False, average=True):
 
         if eval:
-            self.train(False)
+            self.out.out.train(False)
         else:
-            self.train(True)
+            self.out.out.train(True)
 
         out, kld = self(input, gen_input, lengths, gen_lengths, kl_par)
         out = pad_packed_sequence(out, batch_first=True)[0]
