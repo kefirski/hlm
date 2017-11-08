@@ -67,15 +67,16 @@ if __name__ == "__main__":
             likelihood, kld = vae.loss(input, gen_input, lengths, gen_lengths, target, criterion,
                                        kl_par(iteration), eval=True, average=False)
 
-            likelihood = likelihood.cpu().data.numpy()[0]
-            kld = kld.cpu().data.numpy()[0]
-
-            print('iteration {}, likelihood {} likelihood seq {} kld {}'.format(iteration, likelihood / args.batch_size,
-                                                                                likelihood / sum(lengths), kld))
+            likelihood = likelihood.cpu().data
+            kld = kld.cpu().data
 
             writer.add_scalar('likelihood', likelihood / sum(lengths), iteration)
             writer.add_scalar('kld', kld, iteration)
             writer.add_scalar('NLL', likelihood / args.batch_size, iteration)
+
+            print('iteration {}, likelihood {} likelihood seq {} kld {}'.format(iteration, likelihood.numpy() / args.batch_size,
+                                                                                likelihood.numpy() / sum(lengths), kld.numpy()))
+
 
             sampling = vae.sample(200, args.use_cuda, dataloader)
             print('_________')
