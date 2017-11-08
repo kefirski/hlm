@@ -182,7 +182,7 @@ class VAE(nn.Module):
         if cuda:
             prior, eps = prior.cuda(), eps.cuda()
 
-        posterior_gauss = eps * std + mu
+        posterior_gauss = eps * std + mu if self.training else mu
         posterior, log_det = self.iaf[-1](posterior_gauss, h)
 
         kld = self.kl_divergence(z=posterior,
@@ -224,7 +224,7 @@ class VAE(nn.Module):
             if cuda:
                 eps = eps.cuda()
 
-            posterior_gauss = eps * posterior_std + posterior_mu
+            posterior_gauss = eps * posterior_std + posterior_mu if self.training else posterior_mu
             posterior, log_det = self.iaf[i](posterior_gauss, h)
 
             prior_mu, prior_std, _ = self.generation[i].inference(prior_determenistic, 'prior')
