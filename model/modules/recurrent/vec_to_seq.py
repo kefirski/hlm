@@ -39,7 +39,6 @@ class VecToSeq(nn.Module):
         z = z.unsqueeze(1).repeat(1, seq_len, 1)
 
         input = t.cat([input, z], 2)
-        input = F.dropout(input, p=0.25, training=self.training)
 
         if is_packed_seq:
             input = pack_padded_sequence(input, lengths, batch_first=True)

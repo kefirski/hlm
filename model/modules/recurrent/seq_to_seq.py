@@ -33,7 +33,5 @@ class SeqToSeq(nn.Module):
         if is_packed_sequence:
             result, lengths = pad_packed_sequence(result, batch_first=True)
 
-        result = F.dropout(result, p=0.25, training=self.training)
-
         result = self.out(result)
         return result if not is_packed_sequence else pack_padded_sequence(result, lengths, batch_first=True)

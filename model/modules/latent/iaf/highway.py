@@ -25,10 +25,10 @@ class Highway(nn.Module):
 
         for i in range(self.num_layers):
 
-            gate = F.sigmoid(self.gate[i](F.alpha_dropout(x, 0.3, self.training)))
+            gate = F.sigmoid(self.gate[i](x))
 
-            nonlinear = self.f(self.nonlinear[i](F.alpha_dropout(x, 0.3, self.training)))
-            linear = self.linear[i](F.alpha_dropout(x, 0.3, self.training))
+            nonlinear = self.f(self.nonlinear[i](x))
+            linear = self.linear[i](x)
 
             x = gate * nonlinear + (1 - gate) * linear
 
